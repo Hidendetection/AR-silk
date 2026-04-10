@@ -1,0 +1,7 @@
+{
+  "name": "Offcial silk ar i guess",
+  "description": "AR game using MediaPipe Hands to catch falling space debris.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
