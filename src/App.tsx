@@ -1019,20 +1019,34 @@ export default function App() {
       for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const p = state.projectiles[i];
         
-        if (p.type === 'rocket' && p.targetId) {
+        if (p.targetId) {
           const target = state.objects.find(o => o.id === p.targetId);
           if (target) {
             const dx = target.x - p.x;
             const dy = target.y - p.y;
             const dist = Math.hypot(dx, dy);
-            p.vx += (dx / dist) * 0.5;
-            p.vy += (dy / dist) * 0.5;
             
-            // Speed limit
-            const speed = Math.hypot(p.vx, p.vy);
-            if (speed > 7) {
-              p.vx = (p.vx / speed) * 7;
-              p.vy = (p.vy / speed) * 7;
+            if (p.type === 'rocket') {
+              p.vx += (dx / dist) * 1.5;
+              p.vy += (dy / dist) * 1.5;
+              
+              // Speed limit for rockets
+              const speed = Math.hypot(p.vx, p.vy);
+              if (speed > 12) {
+                p.vx = (p.vx / speed) * 12;
+                p.vy = (p.vy / speed) * 12;
+              }
+            } else if (p.type === 'bullet') {
+              // Bullets have strong homing to ensure they hit moving targets
+              p.vx += (dx / dist) * 3.0;
+              p.vy += (dy / dist) * 3.0;
+              
+              // Speed limit for bullets
+              const speed = Math.hypot(p.vx, p.vy);
+              if (speed > 25) {
+                p.vx = (p.vx / speed) * 25;
+                p.vy = (p.vy / speed) * 25;
+              }
             }
           }
         }
