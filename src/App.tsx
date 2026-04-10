@@ -870,10 +870,42 @@ export default function App() {
       const furnaceY = furnaceRect ? furnaceRect.top + furnaceRect.height / 2 : canvas.height - 100;
 
       state.bots.forEach(bot => {
-        bot.angle += bot.type === 'tank' ? 0.01 : 0.02;
-        const orbitRadius = bot.type === 'tank' ? 80 : (bot.type === 'minion' ? 120 : 160);
-        bot.x = furnaceX + Math.cos(bot.angle) * orbitRadius;
-        bot.y = furnaceY + Math.sin(bot.angle) * orbitRadius;
+        // Find closest enemy for combat bots
+        let closestEnemy = null;
+        let minEnemyDist = Infinity;
+        if (bot.type !== 'minion') {
+          for (const obj of state.objects) {
+            if (obj.type === 'enemy' && obj.y > 0) {
+              const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
+              if (dist < minEnemyDist) {
+                minEnemyDist = dist;
+                closestEnemy = obj;
+              }
+            }
+          }
+        }
+
+        if (bot.type === 'tank') {
+          if (closestEnemy) {
+            const dx = closestEnemy.x - bot.x;
+            const dy = closestEnemy.y - bot.y;
+            const dist = Math.hypot(dx, dy);
+            bot.x += (dx / dist) * 4; // Tank chase speed
+            bot.y += (dy / dist) * 4;
+          } else {
+            bot.angle += 0.02;
+            const orbitRadius = 80;
+            const targetX = furnaceX + Math.cos(bot.angle) * orbitRadius;
+            const targetY = furnaceY + Math.sin(bot.angle) * orbitRadius;
+            bot.x += (targetX - bot.x) * 0.1;
+            bot.y += (targetY - bot.y) * 0.1;
+          }
+        } else {
+          bot.angle += 0.02;
+          const orbitRadius = bot.type === 'minion' ? 120 : 160;
+          bot.x = furnaceX + Math.cos(bot.angle) * orbitRadius;
+          bot.y = furnaceY + Math.sin(bot.angle) * orbitRadius;
+        }
 
         if (bot.cooldown > 0) {
           bot.cooldown -= 16;
@@ -939,26 +971,23 @@ export default function App() {
             }
           }
         } else if (bot.type === 'gunner' || bot.type === 'rocket') {
-          if (bot.cooldown <= 0) {
-            const target = state.objects.find(o => o.type === 'enemy' && o.y > 0);
-            if (target) {
-              const dx = target.x - bot.x;
-              const dy = target.y - bot.y;
-              const dist = Math.hypot(dx, dy);
-              
-              state.projectiles.push({
-                id: Math.random(),
-                x: bot.x,
-                y: bot.y,
-                vx: (dx / dist) * (bot.type === 'gunner' ? 10 : 5),
-                vy: (dy / dist) * (bot.type === 'gunner' ? 10 : 5),
-                type: bot.type === 'gunner' ? 'bullet' : 'rocket',
-                targetId: target.id,
-                life: 100
-              });
-              
-              bot.cooldown = bot.type === 'gunner' ? 1000 : 3000;
-            }
+          if (bot.cooldown <= 0 && closestEnemy) {
+            const dx = closestEnemy.x - bot.x;
+            const dy = closestEnemy.y - bot.y;
+            const dist = Math.hypot(dx, dy);
+            
+            state.projectiles.push({
+              id: Math.random(),
+              x: bot.x,
+              y: bot.y,
+              vx: (dx / dist) * (bot.type === 'gunner' ? 20 : 8),
+              vy: (dy / dist) * (bot.type === 'gunner' ? 20 : 8),
+              type: bot.type === 'gunner' ? 'bullet' : 'rocket',
+              targetId: closestEnemy.id,
+              life: 100
+            });
+            
+            bot.cooldown = bot.type === 'gunner' ? 800 : 2500;
           }
         } else if (bot.type === 'tank') {
           // Tank crushes nearby enemies
