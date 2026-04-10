@@ -120,7 +120,7 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('silk-ar-inventory', JSON.stringify(inventory));
-    gameState.current.minionCount = inventory.minions;
+    gameState.current.minionCount = inventory.minions || 0;
     gameState.current.gunnerCount = inventory.gunners || 0;
     gameState.current.rocketCount = inventory.rockets || 0;
     gameState.current.tankCount = inventory.tanks || 0;
@@ -676,30 +676,30 @@ export default function App() {
           // Apply Magnet effect
           if (items.magnet && state.handLandmarks) {
             const distToHand = Math.hypot(obj.x - pinchX, obj.y - pinchY);
-            if (distToHand < 300 && obj.type === 'trash') {
-              obj.x += (pinchX - obj.x) * 0.05;
-              obj.y += (pinchY - obj.y) * 0.05;
+            if (distToHand < 400 && (obj.type === 'trash' || obj.type === 'material')) {
+              obj.x += (pinchX - obj.x) * 0.08;
+              obj.y += (pinchY - obj.y) * 0.08;
             }
           }
 
           // Apply Furnace Overdrive effect
           const isOverdriveActive = Date.now() < activeEffects.overdriveUntil;
-          if (isOverdriveActive && furnaceRef.current && obj.type === 'trash') {
+          if (isOverdriveActive && furnaceRef.current && (obj.type === 'trash' || obj.type === 'material' || obj.type === 'enemy')) {
             const rect = furnaceRef.current.getBoundingClientRect();
             const fx = rect.left + rect.width / 2;
             const fy = rect.top + rect.height / 2;
             const dx = fx - obj.x;
             const dy = fy - obj.y;
             const dist = Math.hypot(dx, dy);
-            if (dist < 400) {
-              obj.x += (dx / dist) * 2.0;
-              obj.y += (dy / dist) * 2.0;
+            if (dist < 600) {
+              obj.x += (dx / dist) * 10.0;
+              obj.y += (dy / dist) * 10.0;
             }
           }
 
           // Apply Time Warp effect
           const isTimeWarpActive = Date.now() < activeEffects.timeWarpUntil;
-          const speedMult = isTimeWarpActive ? 0.4 : 1.0;
+          const speedMult = isTimeWarpActive ? 0.2 : 1.0;
           
           // Enemies move towards furnace if they are close enough, otherwise drop
           if (obj.type === 'enemy' && furnaceRef.current) {
@@ -719,10 +719,24 @@ export default function App() {
             
             // Check collision with furnace directly
             if (obj.x >= rect.left && obj.x <= rect.right && obj.y >= rect.top && obj.y <= rect.bottom) {
-              setScore(s => Math.max(0, s - 15));
-              playSound('burn');
-              state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'BREACH! -15', life: 1.5, color: '#ef4444' });
-              spawnParticles(obj.x, obj.y, '#ef4444', 40);
+              if (isOverdriveActive) {
+                // Singularity Core destroys enemies for points
+                setScore(s => s + 30);
+                playSound('score');
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'VAPORIZED! +30', life: 1.5, color: '#a855f7' });
+                spawnParticles(obj.x, obj.y, '#a855f7', 40);
+              } else if (items.shield > 0) {
+                // Aegis Deflector blocks penalty and kills alien
+                setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
+                playSound('score');
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'DEFLECTED!', life: 1.5, color: '#3b82f6' });
+                spawnParticles(obj.x, obj.y, '#3b82f6', 40);
+              } else {
+                setScore(s => Math.max(0, s - 15));
+                playSound('burn');
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'BREACH! -15', life: 1.5, color: '#ef4444' });
+                spawnParticles(obj.x, obj.y, '#ef4444', 40);
+              }
               state.objects.splice(i, 1);
               continue;
             }
@@ -1099,10 +1113,10 @@ export default function App() {
     if (inventory.materials >= cost) {
       setInventory(prev => {
         const next = { ...prev, materials: prev.materials - cost };
-        if (type === 'minion') next.minions += 1;
-        if (type === 'gunner') next.gunners += 1;
-        if (type === 'rocket') next.rockets += 1;
-        if (type === 'tank') next.tanks += 1;
+        if (type === 'minion') next.minions = (next.minions || 0) + 1;
+        if (type === 'gunner') next.gunners = (next.gunners || 0) + 1;
+        if (type === 'rocket') next.rockets = (next.rockets || 0) + 1;
+        if (type === 'tank') next.tanks = (next.tanks || 0) + 1;
         return next;
       });
       playSound('score');
@@ -1147,7 +1161,7 @@ export default function App() {
   const useComboBoost = () => {
     if (items.comboBoost > 0) {
       setItems(prev => ({ ...prev, comboBoost: prev.comboBoost - 1 }));
-      gameState.current.combo = Math.max(gameState.current.combo, 5);
+      gameState.current.combo = Math.max(gameState.current.combo, 10);
       gameState.current.comboExpiry = Date.now() + 30000;
       setCombo(gameState.current.combo);
       playSound('score');
@@ -1658,11 +1672,11 @@ export default function App() {
               <div className="flex items-center justify-between p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-indigo-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-indigo-600">magnet</span>
+                    <span className="material-symbols-outlined text-indigo-600">all_inclusive</span>
                   </div>
                   <div>
-                    <p className="font-bold text-on-surface">Gravity Well</p>
-                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Pulls trash to hand automatically (Passive)</p>
+                    <p className="font-bold text-on-surface">Quantum Magnet</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Permanently magnetizes hands. Pulls trash & materials from a wide radius.</p>
                   </div>
                 </div>
                 <button 
@@ -1678,11 +1692,11 @@ export default function App() {
               <div className="flex items-center justify-between p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-amber-600">timer</span>
+                    <span className="material-symbols-outlined text-amber-600">hourglass_bottom</span>
                   </div>
                   <div>
-                    <p className="font-bold text-on-surface">Time Dilator</p>
-                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Slows time for 30s - {items.timeWarp || 0} held</p>
+                    <p className="font-bold text-on-surface">Chronos Field</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Slows all falling debris and enemies to a crawl (0.2x speed) for 30s. Held: {items.timeWarp || 0}</p>
                   </div>
                 </div>
                 <button 
@@ -1697,11 +1711,11 @@ export default function App() {
               <div className="flex items-center justify-between p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-blue-600">shield</span>
+                    <span className="material-symbols-outlined text-blue-600">security</span>
                   </div>
                   <div>
-                    <p className="font-bold text-on-surface">Plasma Shield</p>
-                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Blocks 1 penalty - {items.shield || 0} charges</p>
+                    <p className="font-bold text-on-surface">Aegis Deflector</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Equips furnace with a shield. Blocks 1 alien breach and vaporizes it. Charges: {items.shield || 0}</p>
                   </div>
                 </div>
                 <button 
@@ -1716,11 +1730,11 @@ export default function App() {
               <div className="flex items-center justify-between p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-purple-600">local_fire_department</span>
+                    <span className="material-symbols-outlined text-purple-600">flare</span>
                   </div>
                   <div>
-                    <p className="font-bold text-on-surface">Combo Boost</p>
-                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Instantly starts a 5x combo for 30s - {items.comboBoost || 0} held</p>
+                    <p className="font-bold text-on-surface">Supernova Combo</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Ignites scoring potential. Instantly maxes combo to 10x for 30s. Held: {items.comboBoost || 0}</p>
                   </div>
                 </div>
                 <button 
@@ -1735,11 +1749,11 @@ export default function App() {
               <div className="flex items-center justify-between p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-red-600">whatshot</span>
+                    <span className="material-symbols-outlined text-red-600">cyclone</span>
                   </div>
                   <div>
-                    <p className="font-bold text-on-surface">Furnace Overdrive</p>
-                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Furnace pulls trash automatically for 30s - {items.overdrive || 0} held</p>
+                    <p className="font-bold text-on-surface">Singularity Core</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">Furnace becomes a black hole. Violently sucks in trash, materials, and enemies for 30s. Held: {items.overdrive || 0}</p>
                   </div>
                 </div>
                 <button 
