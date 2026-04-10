@@ -97,7 +97,8 @@ export default function App() {
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('silk-ar-settings');
-    return saved ? JSON.parse(saved) : { enemiesEnabled: true };
+    const defaultSettings = { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false };
+    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
   });
 
   const [inventory, setInventory] = useState(() => {
@@ -141,7 +142,7 @@ export default function App() {
   };
 
   const playSound = (type: 'grab' | 'burn' | 'score') => {
-    if (!audioCtxRef.current) return;
+    if (!audioCtxRef.current || !gameState.current.settingsRef.sfxEnabled) return;
     const ctx = audioCtxRef.current;
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
@@ -202,7 +203,7 @@ export default function App() {
     projectiles: [] as Projectile[],
     lastPinchX: 0,
     lastPinchY: 0,
-    settingsRef: { enemiesEnabled: true },
+    settingsRef: { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false },
   });
 
   // Sync settings ref
@@ -377,7 +378,7 @@ export default function App() {
       const state = gameState.current;
 
       // 1. Spawn objects
-      if (timestamp - state.lastSpawnTime > 1500) {
+      if (state.settingsRef.itemsEnabled && timestamp - state.lastSpawnTime > 1500) {
         const isTrash = Math.random() > 0.4;
         const emojis = isTrash ? TRASH_EMOJIS : SATELLITE_EMOJIS;
         const emoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -398,7 +399,7 @@ export default function App() {
       }
 
       // 1.5 Spawn Materials
-      if (timestamp - state.lastMaterialSpawnTime > state.materialSpawnInterval) {
+      if (state.settingsRef.itemsEnabled && timestamp - state.lastMaterialSpawnTime > state.materialSpawnInterval) {
         state.objects.push({
           id: state.nextSpawnId++,
           emoji: '🔮',
@@ -745,30 +746,37 @@ export default function App() {
         ctx.font = `${obj.size}px Arial`;
         
         // Add a subtle glow
-        ctx.shadowColor = obj.type === 'trash' ? 'rgba(255, 100, 100, 0.5)' : 'rgba(100, 200, 255, 0.5)';
-        ctx.shadowBlur = 15;
+        if (!state.settingsRef.highPerformanceMode) {
+          ctx.shadowColor = obj.type === 'trash' ? 'rgba(255, 100, 100, 0.5)' : 'rgba(100, 200, 255, 0.5)';
+          ctx.shadowBlur = 15;
+        }
         
         ctx.fillText(obj.emoji, 0, 0);
         ctx.restore();
       }
 
       // Draw Particles
-      for (let i = state.particles.length - 1; i >= 0; i--) {
-        const p = state.particles[i];
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 0.03;
-        if (p.life <= 0) {
-          state.particles.splice(i, 1);
-          continue;
+      if (!state.settingsRef.highPerformanceMode) {
+        for (let i = state.particles.length - 1; i >= 0; i--) {
+          const p = state.particles[i];
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 0.03;
+          if (p.life <= 0) {
+            state.particles.splice(i, 1);
+            continue;
+          }
+          ctx.globalAlpha = p.life;
+          ctx.fillStyle = p.color;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
         }
-        ctx.globalAlpha = p.life;
-        ctx.fillStyle = p.color;
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = p.color;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fill();
+      } else {
+        // Clear particles to prevent memory leak if toggled off
+        state.particles = [];
       }
 
       // Draw Floating Texts
@@ -782,8 +790,12 @@ export default function App() {
         }
         ctx.globalAlpha = ft.life;
         ctx.fillStyle = ft.color;
-        ctx.shadowBlur = 5;
-        ctx.shadowColor = '#000';
+        if (!state.settingsRef.highPerformanceMode) {
+          ctx.shadowBlur = 5;
+          ctx.shadowColor = '#000';
+        } else {
+          ctx.shadowBlur = 0;
+        }
         ctx.font = 'bold 32px "Inter", sans-serif';
         ctx.fillText(ft.text, ft.x, ft.y);
       }
@@ -1409,6 +1421,48 @@ export default function App() {
                     <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.enemiesEnabled ? 'left-7' : 'left-1'}`} />
                   </button>
                 </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">Item Spawning</p>
+                    <p className="text-[10px] text-on-surface-variant">Trash and materials will drop from the sky.</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings(s => ({ ...s, itemsEnabled: !s.itemsEnabled }))}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.itemsEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.itemsEnabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">Sound Effects</p>
+                    <p className="text-[10px] text-on-surface-variant">Play sounds when grabbing, scoring, or burning.</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.sfxEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.sfxEnabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">High Performance</p>
+                    <p className="text-[10px] text-on-surface-variant">Disables particles and glows for better FPS.</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings(s => ({ ...s, highPerformanceMode: !s.highPerformanceMode }))}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.highPerformanceMode ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.highPerformanceMode ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <button 
+                  onClick={() => setSettings({ enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false })}
+                  className="w-full mt-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-sm transition-all active:scale-95"
+                >
+                  RESTORE DEFAULT SETTINGS
+                </button>
               </div>
 
               <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low">
