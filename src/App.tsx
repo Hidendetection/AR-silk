@@ -19,6 +19,167 @@ const SATELLITE_EMOJIS = ['🔭', '🛰️'];
 const PINCH_THRESHOLD = 55; // pixels
 const GRAB_RADIUS = 100; // pixels
 
+const translations = {
+  en: {
+    store: 'Store',
+    crafting: 'Crafting',
+    settings: 'Settings',
+    plasmaFurnace: 'Plasma Furnace',
+    dropTrashHere: 'Drop Trash Here',
+    gameModifiers: 'Game Modifiers',
+    alienInvasions: 'Alien Invasions',
+    alienDesc: 'Hostile enemies will spawn and attack the furnace.',
+    itemSpawning: 'Item Spawning',
+    itemDesc: 'Trash and materials will drop from the sky.',
+    sfx: 'Sound Effects',
+    sfxDesc: 'Play sounds when grabbing, scoring, or burning.',
+    highPerf: 'High Performance',
+    highPerfDesc: 'Disables particles and glows for better FPS.',
+    language: 'Language',
+    languageDesc: 'Choose your preferred language.',
+    restoreDefaults: 'RESTORE DEFAULT SETTINGS',
+    gameProgression: 'Game Progression',
+    resetDesc: 'Resetting will permanently delete your score and all purchased items.',
+    areYouSure: 'Are you absolutely sure?',
+    cancel: 'CANCEL',
+    yesReset: 'YES, RESET',
+    resetProgress: 'RESET ALL PROGRESS',
+    hunterStore: 'Hunter Store',
+    owned: 'OWNED',
+    pts: 'pts',
+    gravityWell: 'Quantum Magnet',
+    gravityDesc: 'Permanently magnetizes hands. Pulls trash & materials from a wide radius.',
+    timeDilator: 'Chronos Field',
+    timeDesc: 'Slows all falling debris and enemies to a crawl (0.2x speed) for 30s. Held:',
+    plasmaShield: 'Aegis Deflector',
+    shieldDesc: 'Equips furnace with a shield. Blocks 1 alien breach and vaporizes it. Charges:',
+    comboBoost: 'Supernova Combo',
+    comboDesc: 'Ignites scoring potential. Instantly maxes combo to 10x for 30s. Held:',
+    furnaceOverdrive: 'Singularity Core',
+    overdriveDesc: 'Furnace becomes a black hole. Violently sucks in trash, materials, and enemies for 30s. Held:',
+    botFactory: 'Bot Factory',
+    plasmaCores: 'Plasma Cores',
+    craft: 'CRAFT',
+    cost: 'Cost:',
+    minionBot: 'Minion Bot',
+    minionDesc: 'Automatically grabs trash and throws it into the furnace.',
+    ownedCount: 'Owned:',
+    gunnerBot: 'Gunner Bot',
+    gunnerDesc: 'Shoots fast bullets at incoming aliens.',
+    rocketBot: 'Rocket Bot',
+    rocketDesc: 'Fires homing rockets with area-of-effect damage.',
+    tankBot: 'Tank Bot',
+    tankDesc: 'Orbits closely and crushes any alien it touches.',
+    timeWarpActive: 'Time Warp Active',
+    overdriveActive: 'Overdrive Active',
+    useTimeWarp: 'Use Time Warp',
+    useComboBoost: 'Use Combo Boost',
+    useOverdrive: 'Use Overdrive',
+    shield: 'Shield x',
+    breach: 'BREACH!',
+    vaporized: 'VAPORIZED!',
+    deflected: 'DEFLECTED!',
+    crushed: 'CRUSHED!',
+    killed: 'KILLED!',
+    core: 'Core',
+    overheat: 'OVERHEAT!',
+    coreTemp: 'CORE TEMP',
+    bonus: 'BONUS',
+    coreStatus: 'Core Status',
+    levelHunter: 'Level 24 Hunter',
+    totalBounty: 'Total Bounty',
+    score: 'Score',
+    combo: 'COMBO',
+    multiplierActive: 'Multiplier Active',
+    resetScore: 'RESET SCORE',
+    initializingAR: 'Initializing AR Core...',
+    cameraError: 'Camera Error',
+    grantPermission: 'GRANT PERMISSION',
+    retryRefresh: 'RETRY & REFRESH',
+    oops: 'OOPS!',
+    shielded: 'SHIELDED!'
+  },
+  vi: {
+    store: 'Cửa hàng',
+    crafting: 'Chế tạo',
+    settings: 'Cài đặt',
+    plasmaFurnace: 'Lò Plasma',
+    dropTrashHere: 'Thả rác vào đây',
+    gameModifiers: 'Tùy chỉnh Game',
+    alienInvasions: 'Xâm lăng',
+    alienDesc: 'Kẻ thù sẽ xuất hiện và tấn công lò.',
+    itemSpawning: 'Rơi vật phẩm',
+    itemDesc: 'Rác và nguyên liệu sẽ rơi từ trên trời xuống.',
+    sfx: 'Âm thanh',
+    sfxDesc: 'Phát âm thanh khi nhặt, ghi điểm hoặc đốt rác.',
+    highPerf: 'Hiệu suất cao',
+    highPerfDesc: 'Tắt hiệu ứng hạt và ánh sáng để tăng FPS.',
+    language: 'Ngôn ngữ',
+    languageDesc: 'Chọn ngôn ngữ của bạn.',
+    restoreDefaults: 'KHÔI PHỤC MẶC ĐỊNH',
+    gameProgression: 'Tiến trình Game',
+    resetDesc: 'Xóa toàn bộ điểm số và vật phẩm đã mua.',
+    areYouSure: 'Bạn có chắc chắn không?',
+    cancel: 'HỦY',
+    yesReset: 'CÓ, XÓA',
+    resetProgress: 'XÓA MỌI TIẾN TRÌNH',
+    hunterStore: 'Cửa hàng',
+    owned: 'ĐÃ SỞ HỮU',
+    pts: 'điểm',
+    gravityWell: 'Nam châm Lượng tử',
+    gravityDesc: 'Hút rác và nguyên liệu từ khoảng cách xa.',
+    timeDilator: 'Trường Thời gian',
+    timeDesc: 'Làm chậm mọi vật thể rơi và kẻ thù (tốc độ 0.2x) trong 30s. Đang có:',
+    plasmaShield: 'Khiên Aegis',
+    shieldDesc: 'Tạo khiên cho lò. Chặn 1 lần xâm nhập và bốc hơi kẻ thù. Lượt:',
+    comboBoost: 'Siêu Combo',
+    comboDesc: 'Lập tức đạt combo 10x trong 30s. Đang có:',
+    furnaceOverdrive: 'Lõi Kỳ dị',
+    overdriveDesc: 'Lò biến thành hố đen, hút mạnh rác, nguyên liệu và kẻ thù trong 30s. Đang có:',
+    botFactory: 'Nhà máy Robot',
+    plasmaCores: 'Lõi Plasma',
+    craft: 'CHẾ TẠO',
+    cost: 'Giá:',
+    minionBot: 'Robot Thu thập',
+    minionDesc: 'Tự động nhặt rác và ném vào lò.',
+    ownedCount: 'Đã có:',
+    gunnerBot: 'Robot Xạ thủ',
+    gunnerDesc: 'Bắn đạn nhanh vào kẻ thù đang tới.',
+    rocketBot: 'Robot Tên lửa',
+    rocketDesc: 'Bắn tên lửa tự động tìm mục tiêu.',
+    tankBot: 'Robot Đỡ đòn',
+    tankDesc: 'Bay quanh lò và nghiền nát kẻ thù chạm phải.',
+    timeWarpActive: 'Đang làm chậm thời gian',
+    overdriveActive: 'Đang quá tải lò',
+    useTimeWarp: 'Dùng Làm chậm',
+    useComboBoost: 'Dùng Siêu Combo',
+    useOverdrive: 'Dùng Quá tải',
+    shield: 'Khiên x',
+    breach: 'XÂM NHẬP!',
+    vaporized: 'BỐC HƠI!',
+    deflected: 'ĐÃ CHẶN!',
+    crushed: 'NGHIỀN NÁT!',
+    killed: 'TIÊU DIỆT!',
+    core: 'Lõi',
+    overheat: 'QUÁ NHIỆT!',
+    coreTemp: 'NHIỆT ĐỘ LÕI',
+    bonus: 'THƯỞNG',
+    coreStatus: 'Trạng thái Lõi',
+    levelHunter: 'Thợ săn Cấp 24',
+    totalBounty: 'Tổng tiền thưởng',
+    score: 'Điểm',
+    combo: 'COMBO',
+    multiplierActive: 'Đang nhân điểm',
+    resetScore: 'XÓA ĐIỂM',
+    initializingAR: 'Đang khởi tạo AR Core...',
+    cameraError: 'Lỗi Camera',
+    grantPermission: 'CẤP QUYỀN',
+    retryRefresh: 'THỬ LẠI & LÀM MỚI',
+    oops: 'ỐI!',
+    shielded: 'ĐÃ BẢO VỆ!'
+  }
+};
+
 interface Particle {
   x: number;
   y: number;
@@ -94,12 +255,17 @@ export default function App() {
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [storeMessage, setStoreMessage] = useState<string | null>(null);
   const [craftingMessage, setCraftingMessage] = useState<string | null>(null);
+  const [coreTemp, setCoreTemp] = useState(0);
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('silk-ar-settings');
-    const defaultSettings = { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false };
+    const defaultSettings = { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en' };
     return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
   });
+
+  const t = (key: keyof typeof translations.en) => {
+    return translations[settings.language as 'en' | 'vi']?.[key] || translations.en[key];
+  };
 
   const [inventory, setInventory] = useState(() => {
     const saved = localStorage.getItem('silk-ar-inventory');
@@ -203,7 +369,9 @@ export default function App() {
     projectiles: [] as Projectile[],
     lastPinchX: 0,
     lastPinchY: 0,
-    settingsRef: { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false },
+    settingsRef: { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en' },
+    coreTemp: 0,
+    overheatCooldown: 0,
   });
 
   // Sync settings ref
@@ -443,6 +611,133 @@ export default function App() {
         setCombo(0);
       }
 
+      // Handle Core Temp
+      if (timestamp > state.overheatCooldown) {
+        state.coreTemp = Math.max(0, state.coreTemp - 0.05); // Decay
+      }
+      // Sync coreTemp to React state every few frames to avoid too many re-renders
+      if (Math.random() < 0.1) {
+        setCoreTemp(state.coreTemp);
+      }
+
+      const processFurnaceCollision = (obj: GameObject) => {
+        if (timestamp < state.overheatCooldown) {
+          // Furnace is overheated, bounce the object
+          obj.y -= 20;
+          obj.x += (Math.random() - 0.5) * 20;
+          return false; // Did not consume
+        }
+
+        if (obj.type === 'enemy') {
+          if (Date.now() < activeEffects.overdriveUntil) {
+            setScore(s => s + 30);
+            playSound('score');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'BỐC HƠI!' : 'VAPORIZED!'} +30`, life: 1.5, color: '#a855f7' });
+            spawnParticles(obj.x, obj.y, '#a855f7', 40);
+          } else if (items.shield > 0) {
+            setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
+            playSound('score');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: state.settingsRef.language === 'vi' ? 'ĐÃ CHẶN!' : 'DEFLECTED!', life: 1.5, color: '#3b82f6' });
+            spawnParticles(obj.x, obj.y, '#3b82f6', 40);
+          } else {
+            setScore(s => Math.max(0, s - 15));
+            playSound('burn');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'XÂM NHẬP!' : 'BREACH!'} -15`, life: 1.5, color: '#ef4444' });
+            spawnParticles(obj.x, obj.y, '#ef4444', 40);
+          }
+        } else if (obj.type === 'material') {
+          setInventory(prev => ({ ...prev, materials: prev.materials + 1 }));
+          playSound('score');
+          state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `+1 ${state.settingsRef.language === 'vi' ? 'Lõi' : 'Core'}`, life: 1.5, color: '#c084fc' });
+          spawnParticles(obj.x, obj.y, '#c084fc', 20);
+        } else if (obj.type === 'trash') {
+          state.combo += 1;
+          state.comboExpiry = Date.now() + 5000;
+          setCombo(state.combo);
+
+          let multiplier = 1;
+          if (state.combo >= 10) multiplier = 3;
+          else if (state.combo >= 5) multiplier = 2;
+          else if (state.combo >= 2) multiplier = 1.5;
+
+          // Core Temp Bonus
+          let tempMultiplier = 1;
+          if (state.coreTemp > 80) tempMultiplier = 2;
+          else if (state.coreTemp > 50) tempMultiplier = 1.5;
+
+          const basePoints = 10;
+          const points = Math.round(basePoints * multiplier * tempMultiplier);
+
+          setScore(s => s + points);
+          playSound('score');
+          
+          const comboLabel = state.combo > 1 ? ` ${state.combo}x ${state.settingsRef.language === 'vi' ? 'COMBO' : 'Combo'}!` : '';
+          const multLabel = multiplier > 1 || tempMultiplier > 1 ? ` [${multiplier * tempMultiplier}x]` : '';
+          
+          state.floatingTexts.push({ 
+            x: obj.x, 
+            y: obj.y - 20, 
+            text: `+${points}${multLabel}`, 
+            life: 1.2, 
+            color: multiplier > 1 ? '#fbbf24' : '#4ade80' 
+          });
+          
+          if (state.combo > 1) {
+            state.floatingTexts.push({
+              x: obj.x,
+              y: obj.y - 50,
+              text: comboLabel,
+              life: 1.5,
+              color: '#f59e0b'
+            });
+          }
+
+          spawnParticles(obj.x, obj.y, multiplier > 1 ? '#fbbf24' : '#4ade80', 20);
+
+          // Increase Core Temp
+          state.coreTemp += 8;
+          if (state.coreTemp >= 100) {
+            state.overheatCooldown = timestamp + 5000;
+            state.coreTemp = 0;
+            state.combo = 0;
+            setCombo(0);
+            setScore(s => Math.max(0, s - 50));
+            playSound('burn');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 80, text: `${state.settingsRef.language === 'vi' ? 'QUÁ NHIỆT!' : 'OVERHEAT!'} -50`, life: 2.0, color: '#ef4444' });
+            spawnParticles(obj.x, obj.y, '#ef4444', 100);
+          }
+        } else {
+          // Penalty logic for satellites
+          state.combo = 0;
+          setCombo(0);
+
+          let penalty = 0;
+          let label = state.settingsRef.language === 'vi' ? 'ỐI!' : 'OOPS!';
+          if (obj.emoji === '🛰️') {
+            penalty = 20;
+            label = '-20';
+          } else if (obj.emoji === '🔭') {
+            penalty = 10;
+            label = '-10';
+          }
+
+          if (items.shield > 0) {
+            setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: state.settingsRef.language === 'vi' ? 'ĐÃ BẢO VỆ!' : 'SHIELDED!', life: 1.0, color: '#60a5fa' });
+            spawnParticles(obj.x, obj.y, '#60a5fa', 20);
+          } else {
+            setScore(s => Math.max(0, s - penalty));
+            playSound('burn');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: label, life: 1.0, color: '#f87171' });
+            spawnParticles(obj.x, obj.y, '#ef4444', 30);
+          }
+        }
+        
+        setIsFurnaceActive(true);
+        setTimeout(() => setIsFurnaceActive(false), 300);
+        return true; // Consumed
+      };
+
       // 2. Process Hand Logic
       let pinchX = 0;
       let pinchY = 0;
@@ -533,7 +828,7 @@ export default function App() {
                 // Killed enemy!
                 setScore(s => s + 20);
                 playSound('score');
-                state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: 'KILLED! +20', life: 1.5, color: '#ef4444' });
+                state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +20`, life: 1.5, color: '#ef4444' });
                 spawnParticles(grabbedObj.x, grabbedObj.y, '#ef4444', 30);
                 state.objects = state.objects.filter(o => o.id !== grabbedObj.id);
                 state.grabbedObjectId = null;
@@ -555,89 +850,10 @@ export default function App() {
                   grabbedObj.y >= rect.top && grabbedObj.y <= rect.bottom
                 ) {
                   // Dropped in furnace!
-                  if (grabbedObj.type === 'enemy') {
-                    // Enemy entered furnace!
-                    setScore(s => Math.max(0, s - 15));
-                    playSound('burn');
-                    state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: 'BREACH! -15', life: 1.5, color: '#ef4444' });
-                    spawnParticles(grabbedObj.x, grabbedObj.y, '#ef4444', 40);
-                  } else if (grabbedObj.type === 'material') {
-                    setInventory(prev => ({ ...prev, materials: prev.materials + 1 }));
-                    playSound('score');
-                    state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: '+1 Core', life: 1.5, color: '#c084fc' });
-                    spawnParticles(grabbedObj.x, grabbedObj.y, '#c084fc', 20);
-                  } else if (grabbedObj.type === 'trash') {
-                    state.combo += 1;
-                    state.comboExpiry = Date.now() + 5000; // 5 seconds to keep combo alive
-                    setCombo(state.combo);
-
-                    // Multiplier logic: 1.5x at 2, 2x at 5, 3x at 10
-                    let multiplier = 1;
-                    if (state.combo >= 10) multiplier = 3;
-                    else if (state.combo >= 5) multiplier = 2;
-                    else if (state.combo >= 2) multiplier = 1.5;
-
-                    const basePoints = 10;
-                    const points = Math.round(basePoints * multiplier);
-
-                    setScore(s => s + points);
-                    playSound('score');
-                    
-                    const comboLabel = state.combo > 1 ? ` ${state.combo}x Combo!` : '';
-                    const multLabel = multiplier > 1 ? ` [${multiplier}x]` : '';
-                    
-                    state.floatingTexts.push({ 
-                      x: grabbedObj.x, 
-                      y: grabbedObj.y - 20, 
-                      text: `+${points}${multLabel}`, 
-                      life: 1.2, 
-                      color: multiplier > 1 ? '#fbbf24' : '#4ade80' 
-                    });
-                    
-                    if (state.combo > 1) {
-                      state.floatingTexts.push({
-                        x: grabbedObj.x,
-                        y: grabbedObj.y - 50,
-                        text: comboLabel,
-                        life: 1.5,
-                        color: '#f59e0b'
-                      });
-                    }
-
-                    spawnParticles(grabbedObj.x, grabbedObj.y, multiplier > 1 ? '#fbbf24' : '#4ade80', 20);
-                  } else {
-                    // Penalty logic resets combo
-                    state.combo = 0;
-                    setCombo(0);
-
-                    // Penalty logic
-                    let penalty = 0;
-                    let label = 'OOPS!';
-                    if (grabbedObj.emoji === '🛰️') {
-                      penalty = 20;
-                      label = '-20';
-                    } else if (grabbedObj.emoji === '🔭') {
-                      penalty = 10;
-                      label = '-10';
-                    }
-
-                    if (items.shield > 0) {
-                      setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
-                      state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: 'SHIELDED!', life: 1.0, color: '#60a5fa' });
-                      spawnParticles(grabbedObj.x, grabbedObj.y, '#60a5fa', 20);
-                    } else {
-                      setScore(s => Math.max(0, s - penalty));
-                      playSound('burn');
-                      state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: label, life: 1.0, color: '#f87171' });
-                      spawnParticles(grabbedObj.x, grabbedObj.y, '#ef4444', 30);
-                    }
+                  if (processFurnaceCollision(grabbedObj)) {
+                    // Remove object if consumed
+                    state.objects = state.objects.filter(o => o.id !== grabbedObj.id);
                   }
-                  
-                  setIsFurnaceActive(true);
-                  setTimeout(() => setIsFurnaceActive(false), 300);
-
-                  // Remove object (both trash and satellite get destroyed in furnace)
-                  state.objects = state.objects.filter(o => o.id !== grabbedObj.id);
                 }
               }
             }
@@ -716,32 +932,22 @@ export default function App() {
             } else {
               obj.y += obj.speed * speedMult;
             }
-            
-            // Check collision with furnace directly
-            if (obj.x >= rect.left && obj.x <= rect.right && obj.y >= rect.top && obj.y <= rect.bottom) {
-              if (isOverdriveActive) {
-                // Singularity Core destroys enemies for points
-                setScore(s => s + 30);
-                playSound('score');
-                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'VAPORIZED! +30', life: 1.5, color: '#a855f7' });
-                spawnParticles(obj.x, obj.y, '#a855f7', 40);
-              } else if (items.shield > 0) {
-                // Aegis Deflector blocks penalty and kills alien
-                setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
-                playSound('score');
-                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'DEFLECTED!', life: 1.5, color: '#3b82f6' });
-                spawnParticles(obj.x, obj.y, '#3b82f6', 40);
-              } else {
-                setScore(s => Math.max(0, s - 15));
-                playSound('burn');
-                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'BREACH! -15', life: 1.5, color: '#ef4444' });
-                spawnParticles(obj.x, obj.y, '#ef4444', 40);
-              }
-              state.objects.splice(i, 1);
-              continue;
-            }
           } else {
             obj.y += obj.speed * speedMult;
+          }
+          
+          // Check collision with furnace directly for ALL objects
+          if (furnaceRef.current) {
+            const rect = furnaceRef.current.getBoundingClientRect();
+            if (obj.x >= rect.left && obj.x <= rect.right && obj.y >= rect.top && obj.y <= rect.bottom) {
+              // Only auto-consume enemies or if overdrive is active. User must drag trash/materials.
+              if (obj.type === 'enemy' || isOverdriveActive) {
+                if (processFurnaceCollision(obj)) {
+                  state.objects.splice(i, 1);
+                  continue;
+                }
+              }
+            }
           }
           
           obj.rotation += obj.rotationSpeed * speedMult;
@@ -864,6 +1070,9 @@ export default function App() {
           angle: Math.random() * Math.PI * 2
         });
       }
+      if (state.bots.length > totalBots) {
+        state.bots.length = totalBots;
+      }
 
       const furnaceRect = furnaceRef.current?.getBoundingClientRect();
       const furnaceX = furnaceRect ? furnaceRect.left + furnaceRect.width / 2 : canvas.width - 100;
@@ -929,30 +1138,15 @@ export default function App() {
               
               if (dist < 40) {
                 target.isGrabbed = false;
-                state.combo += 1;
-                state.comboExpiry = Date.now() + 5000;
-                setCombo(state.combo);
-
-                let multiplier = 1;
-                if (state.combo >= 10) multiplier = 3;
-                else if (state.combo >= 5) multiplier = 2;
-                else if (state.combo >= 2) multiplier = 1.5;
-
-                const basePoints = 10;
-                const points = Math.round(basePoints * multiplier);
-
-                setScore(s => s + points);
-                playSound('score');
-                
-                state.floatingTexts.push({ x: target.x, y: target.y - 20, text: `+${points}`, life: 1.2, color: '#4ade80' });
-                spawnParticles(target.x, target.y, '#4ade80', 20);
-                
-                setIsFurnaceActive(true);
-                setTimeout(() => setIsFurnaceActive(false), 300);
-
-                state.objects = state.objects.filter(o => o.id !== target.id);
-                bot.targetId = null;
-                bot.cooldown = 2000;
+                if (processFurnaceCollision(target)) {
+                  state.objects = state.objects.filter(o => o.id !== target.id);
+                  bot.targetId = null;
+                  bot.cooldown = 2000;
+                } else {
+                  // If not consumed (e.g., overheat), drop it
+                  bot.targetId = null;
+                  bot.cooldown = 1000;
+                }
               } else {
                 target.x += dx * 0.08;
                 target.y += dy * 0.08;
@@ -998,7 +1192,7 @@ export default function App() {
               if (dist < 60) {
                 setScore(s => s + 20);
                 playSound('score');
-                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'CRUSHED! +20', life: 1.5, color: '#ef4444' });
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'NGHIỀN NÁT!' : 'CRUSHED!'} +20`, life: 1.5, color: '#ef4444' });
                 spawnParticles(obj.x, obj.y, '#ef4444', 30);
                 state.objects.splice(i, 1);
               }
@@ -1076,7 +1270,7 @@ export default function App() {
               hit = true;
               setScore(s => s + 20);
               playSound('score');
-              state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: 'KILLED! +20', life: 1.5, color: '#ef4444' });
+              state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +20`, life: 1.5, color: '#ef4444' });
               spawnParticles(obj.x, obj.y, '#ef4444', p.type === 'rocket' ? 50 : 20);
               state.objects.splice(j, 1);
               break;
@@ -1248,8 +1442,8 @@ export default function App() {
           <span className="text-2xl font-semibold text-indigo-600 tracking-tight font-headline">Silk AR</span>
         </div>
         <div className="hidden md:flex items-center gap-8 font-headline text-sm font-semibold">
-          <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsStoreOpen(true)}>Store</button>
-          <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsCraftingOpen(true)}>Crafting</button>
+          <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsStoreOpen(true)}>{t('store')}</button>
+          <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsCraftingOpen(true)}>{t('crafting')}</button>
         </div>
         <div className="flex items-center gap-3">
           <button className="w-10 h-10 flex items-center justify-center rounded-full neomorphic-raised bg-surface active:scale-95 duration-150">
@@ -1271,8 +1465,8 @@ export default function App() {
             <span className="material-symbols-outlined text-on-primary" style={{fontVariationSettings: "'FILL' 1"}}>bolt</span>
           </div>
           <div>
-            <h3 className="font-headline font-semibold text-on-background leading-tight">Core Status</h3>
-            <p className="text-xs text-on-surface-variant font-medium">Level 24 Hunter</p>
+            <h3 className="font-headline font-semibold text-on-background leading-tight">{t('coreStatus')}</h3>
+            <p className="text-xs text-on-surface-variant font-medium">{t('levelHunter')}</p>
           </div>
         </div>
         <div className="space-y-4 font-headline text-base font-medium">
@@ -1281,21 +1475,21 @@ export default function App() {
             onClick={() => setIsStoreOpen(true)}
           >
             <span className="material-symbols-outlined">shopping_cart</span>
-            <span>Store</span>
+            <span>{t('store')}</span>
           </button>
           <button 
             className="w-full flex items-center gap-4 p-4 text-slate-500 hover:bg-slate-200/50 rounded-xl transition-all"
             onClick={() => setIsCraftingOpen(true)}
           >
             <span className="material-symbols-outlined">build</span>
-            <span>Crafting</span>
+            <span>{t('crafting')}</span>
           </button>
           <button 
             className="w-full flex items-center gap-4 p-4 text-red-500 hover:bg-red-50 rounded-xl transition-all"
             onClick={handleResetProgression}
           >
             <span className="material-symbols-outlined">restart_alt</span>
-            <span>Reset Progress</span>
+            <span>{t('resetProgress')}</span>
           </button>
         </div>
         <div className="mt-auto p-4 rounded-2xl neomorphic-inset bg-surface-container-low">
@@ -1317,8 +1511,8 @@ export default function App() {
               <span className="material-symbols-outlined text-tertiary" style={{fontVariationSettings: "'FILL' 1"}}>stars</span>
             </div>
             <div>
-              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">Total Bounty</p>
-              <p className="text-3xl font-extrabold text-on-surface leading-none font-headline">Score: <span className="text-indigo-600">{score}</span></p>
+              <p className="text-[10px] uppercase tracking-widest text-on-surface-variant font-bold">{t('totalBounty')}</p>
+              <p className="text-3xl font-extrabold text-on-surface leading-none font-headline">{t('score')}: <span className="text-indigo-600">{score}</span></p>
             </div>
           </div>
 
@@ -1327,8 +1521,8 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-amber-500 text-2xl animate-pulse">local_fire_department</span>
                 <div className="flex flex-col">
-                  <span className="text-[12px] font-black text-amber-600 uppercase tracking-tighter leading-none">{combo} COMBO</span>
-                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest">Multiplier Active</span>
+                  <span className="text-[12px] font-black text-amber-600 uppercase tracking-tighter leading-none">{combo} {t('combo')}</span>
+                  <span className="text-[8px] font-bold text-on-surface-variant uppercase tracking-widest">{t('multiplierActive')}</span>
                 </div>
               </div>
               <div className="px-2 py-1 bg-amber-500 text-white text-xs font-black rounded-lg shadow-sm shadow-amber-200">
@@ -1341,14 +1535,14 @@ export default function App() {
             onClick={handleResetScore}
             className="py-2 px-4 bg-surface-container-high hover:bg-surface-dim text-on-surface-variant text-xs font-bold rounded-xl neomorphic-raised transition-all active:scale-95"
           >
-            RESET SCORE
+            {t('resetScore')}
           </button>
         </div>
         
         {!isCameraReady && !cameraError && (
           <div className="mt-4 px-4 py-2 bg-yellow-100/80 backdrop-blur-md rounded-xl inline-flex items-center gap-3 border border-yellow-200/50">
             <span className="material-symbols-outlined text-xs text-yellow-600 animate-spin">sync</span>
-            <span className="text-xs font-semibold text-yellow-800 tracking-wide">Initializing AR Core...</span>
+            <span className="text-xs font-semibold text-yellow-800 tracking-wide">{t('initializingAR')}</span>
           </div>
         )}
         
@@ -1357,7 +1551,7 @@ export default function App() {
             <div className="flex items-start gap-3">
               <span className="material-symbols-outlined text-red-600 mt-0.5">error</span>
               <div className="flex flex-col gap-1">
-                <span className="text-sm font-bold text-red-900 leading-tight">Camera Error</span>
+                <span className="text-sm font-bold text-red-900 leading-tight">{t('cameraError')}</span>
                 <span className="text-xs font-medium text-red-700 leading-relaxed">{cameraError}</span>
               </div>
             </div>
@@ -1367,13 +1561,13 @@ export default function App() {
                 className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all active:scale-95 shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
               >
                 <span className="material-symbols-outlined text-sm">videocam</span>
-                GRANT PERMISSION
+                {t('grantPermission')}
               </button>
               <button 
                 onClick={() => window.location.reload()}
                 className="w-full py-2 bg-white hover:bg-slate-50 text-slate-600 text-xs font-bold rounded-xl transition-all active:scale-95 border border-slate-200"
               >
-                RETRY & REFRESH
+                {t('retryRefresh')}
               </button>
             </div>
           </div>
@@ -1386,11 +1580,16 @@ export default function App() {
           {/* Energy Status Bar (Vertical) */}
           <div className="flex items-center gap-4">
             <div className="h-48 w-4 bg-surface-container-highest neomorphic-inset rounded-full relative overflow-hidden">
-              <div className="absolute bottom-0 w-full h-[65%] bg-error/80 plasma-glow rounded-full animate-flicker-glow"></div>
+              <div 
+                className={`absolute bottom-0 w-full transition-all duration-300 rounded-full ${coreTemp >= 100 ? 'bg-red-600 animate-pulse' : coreTemp > 80 ? 'bg-orange-500' : coreTemp > 50 ? 'bg-yellow-500' : 'bg-blue-500'}`}
+                style={{ height: `${Math.min(100, coreTemp)}%` }}
+              ></div>
             </div>
             <div className="text-right">
-              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">Core Temp</p>
-              <p className="text-xl font-headline font-bold text-error">1,240°C</p>
+              <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">{t('coreTemp')}</p>
+              <p className={`text-xl font-headline font-bold ${coreTemp >= 100 ? 'text-red-600' : coreTemp > 80 ? 'text-orange-500' : coreTemp > 50 ? 'text-yellow-500' : 'text-blue-500'}`}>
+                {Math.round(coreTemp)}%
+              </p>
             </div>
           </div>
           
@@ -1409,8 +1608,8 @@ export default function App() {
                 </div>
               </div>
               <div className="text-center">
-                <h2 className="text-lg font-headline font-extrabold text-on-background tracking-tight">Plasma Furnace</h2>
-                <p className="text-xs font-medium text-on-surface-variant opacity-75">Drop Trash Here</p>
+                <h2 className="text-lg font-headline font-extrabold text-on-background tracking-tight">{t('plasmaFurnace')}</h2>
+                <p className="text-xs font-medium text-on-surface-variant opacity-75">{t('dropTrashHere')}</p>
               </div>
             </div>
           </div>
@@ -1461,15 +1660,15 @@ export default function App() {
               <span className="material-symbols-outlined text-indigo-600">close</span>
             </button>
             
-            <h2 className="text-2xl font-headline font-extrabold text-indigo-600 mb-6">Settings</h2>
+            <h2 className="text-2xl font-headline font-extrabold text-indigo-600 mb-6">{t('settings')}</h2>
             
             <div className="space-y-6">
               <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low">
-                <h3 className="font-bold text-on-surface mb-2">Game Modifiers</h3>
+                <h3 className="font-bold text-on-surface mb-2">{t('gameModifiers')}</h3>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-sm font-bold text-on-surface">Alien Invasions</p>
-                    <p className="text-[10px] text-on-surface-variant">Hostile enemies will spawn and attack the furnace.</p>
+                    <p className="text-sm font-bold text-on-surface">{t('alienInvasions')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('alienDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setSettings(s => ({ ...s, enemiesEnabled: !s.enemiesEnabled }))}
@@ -1480,8 +1679,8 @@ export default function App() {
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-sm font-bold text-on-surface">Item Spawning</p>
-                    <p className="text-[10px] text-on-surface-variant">Trash and materials will drop from the sky.</p>
+                    <p className="text-sm font-bold text-on-surface">{t('itemSpawning')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('itemDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setSettings(s => ({ ...s, itemsEnabled: !s.itemsEnabled }))}
@@ -1492,8 +1691,8 @@ export default function App() {
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-sm font-bold text-on-surface">Sound Effects</p>
-                    <p className="text-[10px] text-on-surface-variant">Play sounds when grabbing, scoring, or burning.</p>
+                    <p className="text-sm font-bold text-on-surface">{t('sfx')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('sfxDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setSettings(s => ({ ...s, sfxEnabled: !s.sfxEnabled }))}
@@ -1504,8 +1703,8 @@ export default function App() {
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
-                    <p className="text-sm font-bold text-on-surface">High Performance</p>
-                    <p className="text-[10px] text-on-surface-variant">Disables particles and glows for better FPS.</p>
+                    <p className="text-sm font-bold text-on-surface">{t('highPerf')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('highPerfDesc')}</p>
                   </div>
                   <button 
                     onClick={() => setSettings(s => ({ ...s, highPerformanceMode: !s.highPerformanceMode }))}
@@ -1514,33 +1713,45 @@ export default function App() {
                     <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.highPerformanceMode ? 'left-7' : 'left-1'}`} />
                   </button>
                 </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">{t('language')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('languageDesc')}</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings(s => ({ ...s, language: s.language === 'en' ? 'vi' : 'en' }))}
+                    className="px-3 py-1 bg-indigo-100 text-indigo-700 rounded-lg font-bold text-xs"
+                  >
+                    {settings.language === 'en' ? 'English' : 'Tiếng Việt'}
+                  </button>
+                </div>
                 <button 
-                  onClick={() => setSettings({ enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false })}
+                  onClick={() => setSettings({ enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en' })}
                   className="w-full mt-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-sm transition-all active:scale-95"
                 >
-                  RESTORE DEFAULT SETTINGS
+                  {t('restoreDefaults')}
                 </button>
               </div>
 
               <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low">
-                <h3 className="font-bold text-on-surface mb-2">Game Progression</h3>
-                <p className="text-xs text-on-surface-variant mb-4">Resetting will permanently delete your score and all purchased items.</p>
+                <h3 className="font-bold text-on-surface mb-2">{t('gameProgression')}</h3>
+                <p className="text-xs text-on-surface-variant mb-4">{t('resetDesc')}</p>
                 
                 {showResetConfirm ? (
                   <div className="flex flex-col gap-2 animate-in fade-in zoom-in-95">
-                    <p className="text-sm font-bold text-red-600 text-center">Are you absolutely sure?</p>
+                    <p className="text-sm font-bold text-red-600 text-center">{t('areYouSure')}</p>
                     <div className="flex gap-2">
                       <button 
                         onClick={() => setShowResetConfirm(false)}
                         className="flex-1 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-sm transition-all active:scale-95"
                       >
-                        CANCEL
+                        {t('cancel')}
                       </button>
                       <button 
                         onClick={handleResetProgression}
                         className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-red-200 transition-all active:scale-95"
                       >
-                        YES, RESET
+                        {t('yesReset')}
                       </button>
                     </div>
                   </div>
@@ -1550,7 +1761,7 @@ export default function App() {
                     className="w-full py-3 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-sm neomorphic-raised flex items-center justify-center gap-2 transition-all active:scale-95"
                   >
                     <span className="material-symbols-outlined">restart_alt</span>
-                    RESET ALL PROGRESS
+                    {t('resetProgress')}
                   </button>
                 )}
               </div>
