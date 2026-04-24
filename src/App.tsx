@@ -97,7 +97,24 @@ const translations = {
     grantPermission: 'GRANT PERMISSION',
     retryRefresh: 'RETRY & REFRESH',
     oops: 'OOPS!',
-    shielded: 'SHIELDED!'
+    shielded: 'SHIELDED!',
+    enemyCrowdness: 'Enemy Crowdness',
+    enemyCrowdnessDesc: 'Adjust the amount of enemies. Higher density yields more points.',
+    crowdLow: 'Low',
+    crowdNormal: 'Normal',
+    crowdHigh: 'High',
+    bossEncounters: 'Boss Encounters',
+    bossEncountersDesc: 'Powerful bosses appear when the Boss Meter fills up.',
+    bossMeter: 'BOSS',
+    bossLevel: 'LVL',
+    manualGuide: 'Player Manual',
+    manualBasicsTitle: 'Game Basics',
+    manualBasicsContent: 'Grab trash (📦🗑️) and materials (🔮) by pinching your index and thumb. Drop them into the glowing Plasma Furnace. Watch the Core Temp: if it hits 100% the furnace overheats, losing points and combo. Keeping temp above 50% gives a 1.5x score multiplier, and above 80% gives 2.0x multiplier. Build Combos by continuously feeding the furnace!',
+    manualEnemiesTitle: 'Enemies & Bosses',
+    manualEnemiesContent: 'Aliens (👾👽🛸) attack the furnace, reducing your score. Grab and "shake" an alien rapidly to destroy them! When the Boss Meter reaches 1000, a Boss spawns. Bosses shoot red projectiles that steal 30 points. Swipe your hand rapidly across the screen near projectiles to deflect them back at the Boss!',
+    manualBotsTitle: 'Bots & Items',
+    manualBotsContent: 'Craft bots using Purple Plasma Cores (🔮): Minion Tank Bots gather items. Gunner Bots shoot lasers (5 dmg). Rocket Bots fire rockets (15 dmg) that also damage Bosses. Use the Store with your score: Magnet (pulls items), Time Warp (slows general time), Overdrive (auto-consume for points), and Shield (blocks aliens).',
+    close: 'CLOSE'
   },
   vi: {
     store: 'Cửa hàng',
@@ -176,7 +193,24 @@ const translations = {
     grantPermission: 'CẤP QUYỀN',
     retryRefresh: 'THỬ LẠI & LÀM MỚI',
     oops: 'ỐI!',
-    shielded: 'ĐÃ BẢO VỆ!'
+    shielded: 'ĐÃ BẢO VỆ!',
+    enemyCrowdness: 'Mật độ kẻ thù',
+    enemyCrowdnessDesc: 'Chỉnh số lượng kẻ thù. Càng đông càng nhiều điểm.',
+    crowdLow: 'Ít',
+    crowdNormal: 'Thường',
+    crowdHigh: 'Đông',
+    bossEncounters: 'Chạm trán Trùm',
+    bossEncountersDesc: 'Trùm mạnh mẽ sẽ xuất hiện khi Thanh Trùm đầy.',
+    bossMeter: 'TRÙM',
+    bossLevel: 'CẤP',
+    manualGuide: 'Cẩm nang Người chơi',
+    manualBasicsTitle: 'Cơ bản',
+    manualBasicsContent: 'Gắp rác (📦🗑️) và nguyên liệu (🔮) bằng cách chụm ngón trỏ và ngón cái. Thả chúng vào Lò Plasma. Chú ý Nhiệt độ Lõi: vượt 100% lò sẽ quá nhiệt, giảm điểm/combo. Giữ trên 50% để nhân 1.5 điểm, trên 80% nhân 2 điểm. Tạo Combo bằng cách cho lò ăn liên tục.',
+    manualEnemiesTitle: 'Kẻ thù & Trùm',
+    manualEnemiesContent: 'Người ngoài hành tinh (👾👽) tống vào lò sẽ trừ điểm. Bạn có thể gắp và "lắc" chúng thật nhanh để tiêu diệt! Làm đầy Thanh Trùm để gọi Trùm! Trùm bắn đạn đỏ trừ 30 điểm. Vung tay qua lửa đạn thật nhanh để đẩy lùi đạn về phía Trùm!',
+    manualBotsTitle: 'Robot & Trang bị',
+    manualBotsContent: 'Chế tạo Robot bằng Lõi điện màu tím (🔮): Minion Tank đi nhặt đồ tống vào lò; Gunner bắn pháo (5 DMG); Rocket bắn tên lửa (15 DMG) có thể đánh Trùm. Cửa hàng (mua bằng điểm số): Nam châm (hút đồ), Ngưng đọng (làm chậm tgian), Quá tải (tự động ăn điểm) và Khiên (chặn địch).',
+    close: 'ĐÓNG'
   }
 };
 
@@ -205,12 +239,14 @@ interface GameObject {
   y: number;
   speed: number;
   isGrabbed: boolean;
-  type: 'trash' | 'satellite' | 'material' | 'enemy';
+  type: 'trash' | 'satellite' | 'material' | 'enemy' | 'boss_projectile';
   size: number;
   rotation: number;
   rotationSpeed: number;
   isTractored?: boolean;
   shakeAmount?: number;
+  vx?: number;
+  vy?: number;
 }
 
 interface Bot {
@@ -237,6 +273,7 @@ interface Projectile {
 export default function App() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const uiCanvasRef = useRef<HTMLCanvasElement>(null);
   const furnaceRef = useRef<HTMLDivElement>(null);
   
   const [score, setScore] = useState(() => {
@@ -252,14 +289,16 @@ export default function App() {
   const [isStoreOpen, setIsStoreOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isCraftingOpen, setIsCraftingOpen] = useState(false);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [storeMessage, setStoreMessage] = useState<string | null>(null);
   const [craftingMessage, setCraftingMessage] = useState<string | null>(null);
   const [coreTemp, setCoreTemp] = useState(0);
+  const [bossDisplay, setBossDisplay] = useState({ active: false, hp: 0, maxHp: 0, level: 1, meter: 0 });
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem('silk-ar-settings');
-    const defaultSettings = { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en' };
+    const defaultSettings = { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en', enemyCrowdness: 'normal', bossesEnabled: true };
     return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
   });
 
@@ -295,6 +334,7 @@ export default function App() {
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [isFurnaceActive, setIsFurnaceActive] = useState(false);
+  const [isManualOpen, setManualOpen] = useState(false);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
@@ -369,10 +409,23 @@ export default function App() {
     projectiles: [] as Projectile[],
     lastPinchX: 0,
     lastPinchY: 0,
-    settingsRef: { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en' },
+    settingsRef: { enemiesEnabled: true, itemsEnabled: true, sfxEnabled: true, highPerformanceMode: false, language: 'en', enemyCrowdness: 'normal', bossesEnabled: true },
     coreTemp: 0,
     overheatCooldown: 0,
+    boss: null as any,
+    bossMeter: 0,
+    bossLevel: 1,
+    handVelocityX: 0,
+    handVelocityY: 0,
+    isModalOpen: false,
+    lastTimestamp: 0,
   });
+
+  const isModalOpen = isStoreOpen || isSettingsOpen || isCraftingOpen || isManualOpen || isGuideOpen;
+
+  useEffect(() => {
+    gameState.current.isModalOpen = isModalOpen;
+  }, [isModalOpen]);
 
   // Sync settings ref
   useEffect(() => {
@@ -526,27 +579,38 @@ export default function App() {
 
   // Game Loop
   useEffect(() => {
-    if (!isCameraReady || !canvasRef.current) return;
+    if (!isCameraReady || !canvasRef.current || !uiCanvasRef.current) return;
 
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    const uiCanvas = uiCanvasRef.current;
+    const uiCtx = uiCanvas.getContext('2d');
+    if (!ctx || !uiCtx) return;
 
     let animationFrameId: number;
 
     const loop = (timestamp: number) => {
+      // Delta time calculation for pausing
+      const state = gameState.current;
+      if (!state.lastTimestamp) state.lastTimestamp = timestamp;
+      const delta = timestamp - state.lastTimestamp;
+      state.lastTimestamp = timestamp;
+
       // Resize canvas to match window
       if (canvas.width !== window.innerWidth || canvas.height !== window.innerHeight) {
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
       }
+      if (uiCanvas.width !== window.innerWidth || uiCanvas.height !== window.innerHeight) {
+        uiCanvas.width = window.innerWidth;
+        uiCanvas.height = window.innerHeight;
+      }
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      const state = gameState.current;
+      uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
 
       // 1. Spawn objects
-      if (state.settingsRef.itemsEnabled && timestamp - state.lastSpawnTime > 1500) {
+      if (!state.isModalOpen && state.settingsRef.itemsEnabled && timestamp - state.lastSpawnTime > 1500) {
         const isTrash = Math.random() > 0.4;
         const emojis = isTrash ? TRASH_EMOJIS : SATELLITE_EMOJIS;
         const emoji = emojis[Math.floor(Math.random() * emojis.length)];
@@ -567,7 +631,7 @@ export default function App() {
       }
 
       // 1.5 Spawn Materials
-      if (state.settingsRef.itemsEnabled && timestamp - state.lastMaterialSpawnTime > state.materialSpawnInterval) {
+      if (!state.isModalOpen && state.settingsRef.itemsEnabled && timestamp - state.lastMaterialSpawnTime > state.materialSpawnInterval) {
         state.objects.push({
           id: state.nextSpawnId++,
           emoji: '🔮',
@@ -584,8 +648,18 @@ export default function App() {
         state.materialSpawnInterval *= 1.1; // Increase interval by 10% each time
       }
 
+      let spawnMultiplier = 1.0;
+      let crowdMultiplier = 1.0;
+      if (state.settingsRef.enemyCrowdness === 'low') {
+        spawnMultiplier = 1.5; // Longer interval
+        crowdMultiplier = 0.5; // Less points
+      } else if (state.settingsRef.enemyCrowdness === 'high') {
+        spawnMultiplier = 0.5; // Shorter interval
+        crowdMultiplier = 2.0; // More points
+      }
+
       // 1.6 Spawn Enemies
-      if (state.settingsRef.enemiesEnabled && timestamp - state.lastEnemySpawnTime > state.enemySpawnInterval) {
+      if (!state.isModalOpen && state.settingsRef.enemiesEnabled && timestamp - state.lastEnemySpawnTime > state.enemySpawnInterval * spawnMultiplier && !state.boss) {
         const enemyEmojis = ['👾', '👽', '🛸'];
         const emoji = enemyEmojis[Math.floor(Math.random() * enemyEmojis.length)];
         state.objects.push({
@@ -605,19 +679,36 @@ export default function App() {
         state.enemySpawnInterval = Math.max(3000, state.enemySpawnInterval * 0.95); // Speeds up over time
       }
 
-      // Handle Combo Expiry
-      if (state.combo > 0 && Date.now() > state.comboExpiry) {
-        state.combo = 0;
-        setCombo(0);
+      // Boss Spawning
+      if (!state.isModalOpen && state.settingsRef.bossesEnabled && !state.boss) {
+        if (state.bossMeter >= 1000) {
+          state.bossMeter = 0;
+          state.boss = {
+            hp: 200 * state.bossLevel,
+            maxHp: 200 * state.bossLevel,
+            x: canvas.width / 2,
+            y: -100,
+            vx: 3,
+            vy: 0,
+            cooldown: 2000,
+            state: 'entering'
+          };
+          state.floatingTexts.push({ x: canvas.width / 2, y: canvas.height / 2, text: state.settingsRef.language === 'vi' ? 'TRÙM XUẤT HIỆN!' : 'BOSS APPROACHING!', life: 3.0, color: '#ef4444' });
+          setBossDisplay({ active: true, hp: state.boss.hp, maxHp: state.boss.maxHp, level: state.bossLevel, meter: 0 });
+        }
       }
 
-      // Handle Core Temp
-      if (timestamp > state.overheatCooldown) {
-        state.coreTemp = Math.max(0, state.coreTemp - 0.05); // Decay
-      }
-      // Sync coreTemp to React state every few frames to avoid too many re-renders
+      // Sync boss UI state
       if (Math.random() < 0.1) {
         setCoreTemp(state.coreTemp);
+        setBossDisplay(prev => ({ 
+          ...prev, 
+          meter: state.bossMeter, 
+          level: state.bossLevel, 
+          active: !!state.boss, 
+          hp: state.boss ? state.boss.hp : prev.hp,
+          maxHp: state.boss ? state.boss.maxHp : prev.maxHp 
+        }));
       }
 
       const processFurnaceCollision = (obj: GameObject) => {
@@ -630,12 +721,15 @@ export default function App() {
 
         if (obj.type === 'enemy') {
           if (Date.now() < activeEffects.overdriveUntil) {
-            setScore(s => s + 30);
+            const addedScore = Math.round(30 * crowdMultiplier);
+            setScore(s => s + addedScore);
+            state.bossMeter += 15;
             playSound('score');
-            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'BỐC HƠI!' : 'VAPORIZED!'} +30`, life: 1.5, color: '#a855f7' });
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'BỐC HƠI!' : 'VAPORIZED!'} +${addedScore}`, life: 1.5, color: '#a855f7' });
             spawnParticles(obj.x, obj.y, '#a855f7', 40);
           } else if (items.shield > 0) {
             setItems(prev => ({ ...prev, shield: prev.shield - 1 }));
+            state.bossMeter += 10;
             playSound('score');
             state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: state.settingsRef.language === 'vi' ? 'ĐÃ CHẶN!' : 'DEFLECTED!', life: 1.5, color: '#3b82f6' });
             spawnParticles(obj.x, obj.y, '#3b82f6', 40);
@@ -645,6 +739,11 @@ export default function App() {
             state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'XÂM NHẬP!' : 'BREACH!'} -15`, life: 1.5, color: '#ef4444' });
             spawnParticles(obj.x, obj.y, '#ef4444', 40);
           }
+        } else if (obj.type === 'boss_projectile') {
+            setScore(s => Math.max(0, s - 30));
+            playSound('burn');
+            state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TRÚNG ĐÒN!' : 'DIRECT HIT!'} -30`, life: 2.0, color: '#ef4444' });
+            spawnParticles(obj.x, obj.y, '#ef4444', 60);
         } else if (obj.type === 'material') {
           setInventory(prev => ({ ...prev, materials: prev.materials + 1 }));
           playSound('score');
@@ -667,6 +766,7 @@ export default function App() {
 
           const basePoints = 10;
           const points = Math.round(basePoints * multiplier * tempMultiplier);
+          state.bossMeter += 2;
 
           setScore(s => s + points);
           playSound('score');
@@ -781,6 +881,48 @@ export default function App() {
         const targetPinchX = (tx + ix) / 2;
         const targetPinchY = (ty + iy) / 2;
 
+        // Calculate hand velocity
+        state.handVelocityX = targetPinchX - (state.lastPinchX || targetPinchX);
+        state.handVelocityY = targetPinchY - (state.lastPinchY || targetPinchY);
+        state.lastPinchX = targetPinchX;
+        state.lastPinchY = targetPinchY;
+        const handSpeed = Math.hypot(state.handVelocityX, state.handVelocityY);
+
+        // Check for projectile deflection (wiping gesture)
+        if (handSpeed > 15 && state.boss) {
+          for (let i = 0; i < state.objects.length; i++) {
+            const obj = state.objects[i];
+            if (obj.type === 'boss_projectile') {
+              const dToHand = Math.hypot(obj.x - targetPinchX, obj.y - targetPinchY);
+              if (dToHand < 60) {
+                // Deflect!
+                obj.vy = -15; // Send back up fast
+                obj.vx = state.handVelocityX * 0.3; // Give it some horizontal sway
+                
+                playSound('score'); // Using score sound as clink
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: state.settingsRef.language === 'vi' ? 'ĐÃ CHẶN!' : 'DEFLECTED!', life: 1.5, color: '#60a5fa' });
+                spawnParticles(obj.x, obj.y, '#60a5fa', 20);
+                
+                // Add a player projectile aimed at boss
+                state.projectiles.push({
+                  id: Math.random(),
+                  x: obj.x,
+                  y: obj.y,
+                  vx: obj.vx,
+                  vy: obj.vy,
+                  type: 'rocket',
+                  targetId: null, // we will manually hit boss
+                  life: 100
+                });
+                
+                // Remove the original boss projectile
+                state.objects.splice(i, 1);
+                i--;
+              }
+            }
+          }
+        }
+
         // Initialize or smooth
         if (state.smoothedPinchX === 0 && state.smoothedPinchY === 0) {
           state.smoothedPinchX = targetPinchX;
@@ -795,7 +937,15 @@ export default function App() {
 
         if (isPinching) {
           if (!state.wasPinching) {
-            console.log('Đang gắp!');
+            // AR Hand UI Interaction: Click Buttons
+            const el = document.elementFromPoint(pinchX, pinchY);
+            if (el) {
+              const clickable = el.closest('button, .clickable');
+              if (clickable) {
+                (clickable as HTMLElement).click();
+              }
+            }
+
             // Try to grab the closest object within radius
             let closestObj = null;
             let minDistance = GRAB_RADIUS;
@@ -826,9 +976,11 @@ export default function App() {
               
               if (grabbedObj.shakeAmount > 800) { // Shake threshold
                 // Killed enemy!
-                setScore(s => s + 20);
+                const addedScore = Math.round(20 * crowdMultiplier);
+                setScore(s => s + addedScore);
+                state.bossMeter += 15;
                 playSound('score');
-                state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +20`, life: 1.5, color: '#ef4444' });
+                state.floatingTexts.push({ x: grabbedObj.x, y: grabbedObj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +${addedScore}`, life: 1.5, color: '#ef4444' });
                 spawnParticles(grabbedObj.x, grabbedObj.y, '#ef4444', 30);
                 state.objects = state.objects.filter(o => o.id !== grabbedObj.id);
                 state.grabbedObjectId = null;
@@ -888,7 +1040,7 @@ export default function App() {
           obj.y = pinchY;
         } else if (obj.isTractored) {
           // Movement handled by minion logic
-        } else {
+        } else if (!state.isModalOpen) {
           // Apply Magnet effect
           if (items.magnet && state.handLandmarks) {
             const distToHand = Math.hypot(obj.x - pinchX, obj.y - pinchY);
@@ -940,8 +1092,8 @@ export default function App() {
           if (furnaceRef.current) {
             const rect = furnaceRef.current.getBoundingClientRect();
             if (obj.x >= rect.left && obj.x <= rect.right && obj.y >= rect.top && obj.y <= rect.bottom) {
-              // Only auto-consume enemies or if overdrive is active. User must drag trash/materials.
-              if (obj.type === 'enemy' || isOverdriveActive) {
+              // Only auto-consume enemies, boss projectiles or if overdrive is active. User must drag trash/materials.
+              if (obj.type === 'enemy' || obj.type === 'boss_projectile' || isOverdriveActive) {
                 if (processFurnaceCollision(obj)) {
                   state.objects.splice(i, 1);
                   continue;
@@ -979,9 +1131,11 @@ export default function App() {
       if (!state.settingsRef.highPerformanceMode) {
         for (let i = state.particles.length - 1; i >= 0; i--) {
           const p = state.particles[i];
-          p.x += p.vx;
-          p.y += p.vy;
-          p.life -= 0.03;
+          if (!state.isModalOpen) {
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life -= 0.03;
+          }
           if (p.life <= 0) {
             state.particles.splice(i, 1);
             continue;
@@ -1083,12 +1237,16 @@ export default function App() {
         let closestEnemy = null;
         let minEnemyDist = Infinity;
         if (bot.type !== 'minion') {
-          for (const obj of state.objects) {
-            if (obj.type === 'enemy' && obj.y > 0) {
-              const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
-              if (dist < minEnemyDist) {
-                minEnemyDist = dist;
-                closestEnemy = obj;
+          if (state.boss) {
+            closestEnemy = { id: -1, x: state.boss.x, y: state.boss.y, type: 'boss' } as any;
+          } else {
+            for (const obj of state.objects) {
+              if (obj.type === 'enemy' && obj.y > 0) {
+                const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
+                if (dist < minEnemyDist) {
+                  minEnemyDist = dist;
+                  closestEnemy = obj;
+                }
               }
             }
           }
@@ -1280,18 +1438,75 @@ export default function App() {
 
         if (hit || p.life <= 0) {
           state.projectiles.splice(i, 1);
+        } else if (state.boss) {
+          // Check collision with Boss
+          const dist = Math.hypot(state.boss.x - p.x, state.boss.y - p.y);
+          if (dist < 80) { // boss radius
+            state.boss.hp -= (p.type === 'rocket' ? 15 : 5);
+            state.projectiles.splice(i, 1);
+            spawnParticles(p.x, p.y, '#fbbf24', 20);
+            
+            // Check boss death
+            if (state.boss.hp <= 0) {
+              state.floatingTexts.push({ x: state.boss.x, y: state.boss.y, text: state.settingsRef.language === 'vi' ? 'ĐÃ TIÊU DIỆT TRÙM!' : 'BOSS DEFEATED!', life: 3.0, color: '#fbbf24' });
+              spawnParticles(state.boss.x, state.boss.y, '#fbbf24', 100);
+              const bossPoints = 500 * state.bossLevel;
+              setScore(s => s + bossPoints);
+              state.floatingTexts.push({ x: state.boss.x, y: state.boss.y + 30, text: `+${bossPoints}`, life: 3.0, color: '#4ade80' });
+              playSound('score');
+              state.bossLevel += 1;
+              state.boss = null;
+            }
+          }
         }
+      }
+
+      // Boss Logic Loop
+      if (state.boss) {
+        let b = state.boss;
+        if (b.state === 'entering') {
+          b.y += 2;
+          if (b.y > 100) b.state = 'fighting';
+        } else if (b.state === 'fighting') {
+          b.x += b.vx;
+          if (b.x < 100 || b.x > canvas.width - 100) b.vx *= -1;
+          
+          b.cooldown -= 16;
+          if (b.cooldown <= 0) {
+            b.cooldown = 2000 - Math.min(1500, state.bossLevel * 100);
+            // Spawn boss projectile
+            state.objects.push({
+              id: state.nextSpawnId++,
+              emoji: '🔴',
+              x: b.x,
+              y: b.y + 50,
+              speed: 5 + state.bossLevel,
+              isGrabbed: false,
+              type: 'boss_projectile',
+              size: 50,
+              rotation: 0,
+              rotationSpeed: 0.1,
+              vx: (Math.random() - 0.5) * 5,
+              vy: 5 + state.bossLevel * 0.5
+            });
+            playSound('burn');
+          }
+        }
+        
+        // Draw boss
+        ctx.font = '80px Arial';
+        ctx.fillText('🛸', b.x - 40, b.y + 40);
       }
 
       // 5. Draw Hand Feedback (Optional, for better UX)
       if (state.handLandmarks) {
-        ctx.beginPath();
-        ctx.arc(pinchX, pinchY, isPinching ? 15 : 8, 0, 2 * Math.PI);
-        ctx.fillStyle = isPinching ? 'rgba(99, 102, 241, 0.8)' : 'rgba(255, 255, 255, 0.5)';
-        ctx.fill();
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-        ctx.lineWidth = 2;
-        ctx.stroke();
+        uiCtx.beginPath();
+        uiCtx.arc(pinchX, pinchY, isPinching ? 15 : 8, 0, 2 * Math.PI);
+        uiCtx.fillStyle = isPinching ? 'rgba(99, 102, 241, 0.8)' : 'rgba(255, 255, 255, 0.5)';
+        uiCtx.fill();
+        uiCtx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        uiCtx.lineWidth = 2;
+        uiCtx.stroke();
       }
 
       animationFrameId = requestAnimationFrame(loop);
@@ -1430,10 +1645,15 @@ export default function App() {
         />
       </div>
 
-      {/* Middle Layer: Transparent Canvas for AR Entities */}
+      // Middle Layer: Transparent Canvas for AR Entities
       <canvas 
         ref={canvasRef}
         className="fixed inset-0 z-40 pointer-events-none"
+      />
+      {/* UI Interaction pointer overlay */}
+      <canvas 
+        ref={uiCanvasRef}
+        className="fixed inset-0 z-[200] pointer-events-none"
       />
 
       {/* Top Navigation Shell */}
@@ -1444,6 +1664,7 @@ export default function App() {
         <div className="hidden md:flex items-center gap-8 font-headline text-sm font-semibold">
           <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsStoreOpen(true)}>{t('store')}</button>
           <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setIsCraftingOpen(true)}>{t('crafting')}</button>
+          <button className="text-slate-600 hover:text-indigo-500 transition-colors" onClick={() => setManualOpen(true)}>{t('manualGuide')}</button>
         </div>
         <div className="flex items-center gap-3">
           <button className="w-10 h-10 flex items-center justify-center rounded-full neomorphic-raised bg-surface active:scale-95 duration-150">
@@ -1485,6 +1706,13 @@ export default function App() {
             <span>{t('crafting')}</span>
           </button>
           <button 
+            className="w-full flex items-center gap-4 p-4 text-slate-500 hover:bg-slate-200/50 rounded-xl transition-all"
+            onClick={() => setManualOpen(true)}
+          >
+            <span className="material-symbols-outlined">menu_book</span>
+            <span>{t('manualGuide')}</span>
+          </button>
+          <button 
             className="w-full flex items-center gap-4 p-4 text-red-500 hover:bg-red-50 rounded-xl transition-all"
             onClick={handleResetProgression}
           >
@@ -1502,6 +1730,39 @@ export default function App() {
           </div>
         </div>
       </aside>
+
+      {/* Top Center Content UI: Boss Health Bar and Meter */}
+      <div className="fixed top-24 left-1/2 -translate-x-1/2 z-30 pointer-events-none transition-all w-full max-w-md px-4">
+        {settings.bossesEnabled && (
+          bossDisplay.active ? (
+            <div className="bg-surface/90 backdrop-blur-md rounded-2xl neomorphic-raised p-4 border border-red-500/30 shadow-[0_4px_24px_rgba(239,68,68,0.3)] animate-in slide-in-from-top flex flex-col gap-2">
+              <div className="flex justify-between items-center text-red-600 font-headline font-black uppercase tracking-widest">
+                <span className="flex items-center gap-2"><span className="material-symbols-outlined text-lg">warning</span> ALIEN BOSS</span>
+                <span className="text-sm bg-red-100 px-2 py-0.5 rounded-lg border border-red-200">LVL {bossDisplay.level}</span>
+              </div>
+              <div className="w-full h-4 bg-slate-200 neomorphic-inset rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-red-500 transition-all duration-300 rounded-full shadow-[inset_0_2px_4px_rgba(255,255,255,0.4)]"
+                  style={{ width: `${Math.max(0, (bossDisplay.hp / bossDisplay.maxHp) * 100)}%` }}
+                ></div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-surface/40 backdrop-blur-md rounded-2xl neomorphic-raised p-3 border border-white/20 flex flex-col gap-1 w-64 mx-auto opacity-70">
+              <div className="flex justify-between items-center text-[10px] font-bold text-on-surface-variant uppercase tracking-widest">
+                <span>{t('bossMeter')}</span>
+                <span>{Math.floor(bossDisplay.meter)}/1000</span>
+              </div>
+              <div className="w-full h-1.5 bg-surface-container-highest neomorphic-inset rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-indigo-500 transition-all duration-500"
+                  style={{ width: `${Math.max(0, Math.min(100, (bossDisplay.meter / 1000) * 100))}%` }}
+                ></div>
+              </div>
+            </div>
+          )
+        )}
+      </div>
 
       {/* Top-Left Content UI: Score Display Widget */}
       <div className="fixed top-24 left-8 z-30 pointer-events-none lg:left-72 transition-all">
@@ -1640,6 +1901,13 @@ export default function App() {
             </button>
           </div>
           <button 
+            onClick={() => setManualOpen(true)}
+            className="flex flex-col items-center gap-1 p-2 text-on-surface-variant"
+          >
+            <span className="material-symbols-outlined text-2xl">menu_book</span>
+            <span className="text-[10px] whitespace-nowrap font-bold uppercase">Manual</span>
+          </button>
+          <button 
             onClick={() => setIsSettingsOpen(true)}
             className="flex flex-col items-center gap-1 p-2 text-on-surface-variant"
           >
@@ -1712,6 +1980,33 @@ export default function App() {
                   >
                     <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.highPerformanceMode ? 'left-7' : 'left-1'}`} />
                   </button>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">{t('bossEncounters')}</p>
+                    <p className="text-[10px] text-on-surface-variant">{t('bossEncountersDesc')}</p>
+                  </div>
+                  <button 
+                    onClick={() => setSettings(s => ({ ...s, bossesEnabled: !s.bossesEnabled }))}
+                    className={`w-12 h-6 rounded-full relative transition-colors ${settings.bossesEnabled ? 'bg-indigo-600' : 'bg-slate-300'}`}
+                  >
+                    <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${settings.bossesEnabled ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+                <div className="flex items-center justify-between mt-4">
+                  <div>
+                    <p className="text-sm font-bold text-on-surface">{t('enemyCrowdness')}</p>
+                    <p className="text-[10px] text-on-surface-variant max-w-[150px]">{t('enemyCrowdnessDesc')}</p>
+                  </div>
+                  <select
+                    className="p-1 rounded bg-slate-100 text-xs font-bold text-slate-700 outline-none"
+                    value={settings.enemyCrowdness}
+                    onChange={(e) => setSettings(s => ({ ...s, enemyCrowdness: e.target.value as any }))}
+                  >
+                    <option value="low">{t('crowdLow')}</option>
+                    <option value="normal">{t('crowdNormal')}</option>
+                    <option value="high">{t('crowdHigh')}</option>
+                  </select>
                 </div>
                 <div className="flex items-center justify-between mt-4">
                   <div>
@@ -2074,6 +2369,69 @@ export default function App() {
           </div>
         )}
       </div>
+
+      {/* Manual Guide Modal */}
+      {isManualOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-surface w-full max-w-2xl rounded-[2.5rem] neomorphic-raised p-8 relative overflow-hidden max-h-[90vh] overflow-y-auto">
+            <button 
+              onClick={() => setManualOpen(false)}
+              className="absolute top-6 right-6 w-10 h-10 flex items-center justify-center rounded-full neomorphic-raised bg-surface active:scale-95"
+            >
+              <span className="material-symbols-outlined text-indigo-600">close</span>
+            </button>
+            
+            <div className="flex items-center justify-center gap-3 mb-6 relative">
+              <span className="material-symbols-outlined text-4xl text-indigo-600">menu_book</span>
+              <h2 className="text-3xl font-headline font-extrabold text-indigo-600 tracking-tight">{t('manualGuide')}</h2>
+            </div>
+            
+            <div className="space-y-6">
+              <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low border border-indigo-100/50 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="material-symbols-outlined text-2xl text-indigo-500">lightbulb</span>
+                  <h3 className="text-lg font-bold text-slate-800">{t('manualBasicsTitle')}</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                  {t('manualBasicsContent')}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low border border-red-100/50 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="material-symbols-outlined text-2xl text-red-500">warning</span>
+                  <h3 className="text-lg font-bold text-slate-800">{t('manualEnemiesTitle')}</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                  {t('manualEnemiesContent')}
+                </p>
+              </div>
+
+              <div className="p-6 rounded-2xl neomorphic-inset bg-surface-container-low border border-emerald-100/50 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-bl-full -mr-16 -mt-16 group-hover:scale-110 transition-transform"></div>
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="material-symbols-outlined text-2xl text-emerald-500">smart_toy</span>
+                  <h3 className="text-lg font-bold text-slate-800">{t('manualBotsTitle')}</h3>
+                </div>
+                <p className="text-sm text-slate-600 leading-relaxed font-medium">
+                  {t('manualBotsContent')}
+                </p>
+              </div>
+            </div>
+
+            <button 
+              onClick={() => setManualOpen(false)}
+              className="w-full mt-8 py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-2xl font-bold text-sm neomorphic-raised transition-all active:scale-95 flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined">check_circle</span>
+              {t('close')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Decorative Overlay: Grid & Crosshairs */}
       <div className="fixed inset-0 z-20 pointer-events-none opacity-20">
         <div className="w-full h-full" style={{backgroundImage: 'radial-gradient(circle, #6366f1 1px, transparent 1px)', backgroundSize: '40px 40px'}}></div>
