@@ -113,7 +113,7 @@ const translations = {
     manualEnemiesTitle: 'Enemies & Bosses',
     manualEnemiesContent: 'Aliens (👾👽🛸) attack the furnace, reducing your score. Grab and "shake" an alien rapidly to destroy them! When the Boss Meter reaches 1000, a Boss spawns. Bosses shoot red projectiles that steal 30 points. Swipe your hand rapidly across the screen near projectiles to deflect them back at the Boss!',
     manualBotsTitle: 'Bots & Items',
-    manualBotsContent: 'Craft bots using Purple Plasma Cores (🔮): Minion Tank Bots gather items. Gunner Bots shoot lasers (5 dmg). Rocket Bots fire rockets (15 dmg) that also damage Bosses. Use the Store with your score: Magnet (pulls items), Time Warp (slows general time), Overdrive (auto-consume for points), and Shield (blocks aliens).',
+    manualBotsContent: 'Craft bots using Purple Plasma Cores (🔮): Minion Bots gather items. Tank Bots orbit and crush enemies. Gunner Bots shoot lasers (5 dmg). Rocket Bots fire rockets (15 dmg) that also damage Bosses. Use the Store with your score: Magnet (pulls items), Time Warp (slows general time), Overdrive (auto-consume for points), and Shield (blocks aliens).',
     close: 'CLOSE'
   },
   vi: {
@@ -209,7 +209,7 @@ const translations = {
     manualEnemiesTitle: 'Kẻ thù & Trùm',
     manualEnemiesContent: 'Người ngoài hành tinh (👾👽) tống vào lò sẽ trừ điểm. Bạn có thể gắp và "lắc" chúng thật nhanh để tiêu diệt! Làm đầy Thanh Trùm để gọi Trùm! Trùm bắn đạn đỏ trừ 30 điểm. Vung tay qua lửa đạn thật nhanh để đẩy lùi đạn về phía Trùm!',
     manualBotsTitle: 'Robot & Trang bị',
-    manualBotsContent: 'Chế tạo Robot bằng Lõi điện màu tím (🔮): Minion Tank đi nhặt đồ tống vào lò; Gunner bắn pháo (5 DMG); Rocket bắn tên lửa (15 DMG) có thể đánh Trùm. Cửa hàng (mua bằng điểm số): Nam châm (hút đồ), Ngưng đọng (làm chậm tgian), Quá tải (tự động ăn điểm) và Khiên (chặn địch).',
+    manualBotsContent: 'Chế tạo Robot bằng Lõi điện màu tím (🔮): Minion Bot đi nhặt đồ tống vào lò. Tank Bot bay quanh và nghiền nát địch. Gunner Bot bắn pháo (5 DMG). Rocket bắn tên lửa (15 DMG) có thể đánh Trùm. Cửa hàng (mua bằng điểm số): Nam châm (hút đồ), Ngưng đọng (làm chậm tgian), Quá tải (tự động ăn điểm) và Khiên (chặn địch).',
     close: 'ĐÓNG'
   }
 };
@@ -389,6 +389,10 @@ export default function App() {
     particles: [] as Particle[],
     floatingTexts: [] as FloatingText[],
     handLandmarks: null as any,
+    hoveredElement: null as Element | null,
+    hoverStartTime: 0,
+    hoverProgress: 0,
+    lastClickTime: 0,
     wasPinching: false,
     grabbedObjectId: null as number | null,
     lastSpawnTime: 0,
@@ -935,15 +939,36 @@ export default function App() {
         pinchX = state.smoothedPinchX;
         pinchY = state.smoothedPinchY;
 
+        // AR Hand UI Interaction: Dwell Click for Buttons
+        const el = document.elementFromPoint(pinchX, pinchY);
+        let clickableElem = el ? el.closest('button, .clickable') : null;
+
+        if (clickableElem) {
+          if (state.hoveredElement !== clickableElem) {
+            state.hoveredElement = clickableElem;
+            state.hoverStartTime = timestamp;
+            state.hoverProgress = 0;
+          } else if (timestamp - state.lastClickTime > 1000) {
+            // Apply dwell progress
+            state.hoverProgress = (timestamp - state.hoverStartTime) / 600; // 600ms dwell time
+            if (state.hoverProgress >= 1) {
+              (clickableElem as HTMLElement).click();
+              state.hoveredElement = null; // Require re-entering to click again
+              state.hoverProgress = 0;
+              state.lastClickTime = timestamp;
+            }
+          }
+        } else {
+          state.hoveredElement = null;
+          state.hoverProgress = 0;
+        }
+
         if (isPinching) {
           if (!state.wasPinching) {
-            // AR Hand UI Interaction: Click Buttons
-            const el = document.elementFromPoint(pinchX, pinchY);
-            if (el) {
-              const clickable = el.closest('button, .clickable');
-              if (clickable) {
-                (clickable as HTMLElement).click();
-              }
+            // Also allow pinching to click instantly
+            if (clickableElem && timestamp - state.lastClickTime > 500) {
+              (clickableElem as HTMLElement).click();
+              state.lastClickTime = timestamp;
             }
 
             // Try to grab the closest object within radius
@@ -1233,126 +1258,150 @@ export default function App() {
       const furnaceY = furnaceRect ? furnaceRect.top + furnaceRect.height / 2 : canvas.height - 100;
 
       state.bots.forEach(bot => {
-        // Find closest enemy for combat bots
-        let closestEnemy = null;
-        let minEnemyDist = Infinity;
-        if (bot.type !== 'minion') {
-          if (state.boss) {
-            closestEnemy = { id: -1, x: state.boss.x, y: state.boss.y, type: 'boss' } as any;
-          } else {
-            for (const obj of state.objects) {
-              if (obj.type === 'enemy' && obj.y > 0) {
-                const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
-                if (dist < minEnemyDist) {
-                  minEnemyDist = dist;
-                  closestEnemy = obj;
+        if (!state.isModalOpen) {
+          // Find closest enemy for combat bots
+          let closestEnemy = null;
+          let minEnemyDist = Infinity;
+          if (bot.type !== 'minion') {
+            if (state.boss) {
+              closestEnemy = { id: -1, x: state.boss.x, y: state.boss.y, type: 'boss' } as any;
+            } else {
+              for (const obj of state.objects) {
+                if (obj.type === 'enemy' && obj.y > 0) {
+                  const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
+                  if (dist < minEnemyDist) {
+                    minEnemyDist = dist;
+                    closestEnemy = obj;
+                  }
                 }
               }
             }
           }
-        }
 
-        if (bot.type === 'tank') {
-          if (closestEnemy) {
-            const dx = closestEnemy.x - bot.x;
-            const dy = closestEnemy.y - bot.y;
-            const dist = Math.hypot(dx, dy);
-            bot.x += (dx / dist) * 4; // Tank chase speed
-            bot.y += (dy / dist) * 4;
+          if (bot.type === 'tank') {
+            if (closestEnemy) {
+              const dx = closestEnemy.x - bot.x;
+              const dy = closestEnemy.y - bot.y;
+              const dist = Math.hypot(dx, dy);
+              bot.x += (dx / dist) * 4; // Tank chase speed
+              bot.y += (dy / dist) * 4;
+            } else {
+              bot.angle += 0.02;
+              const orbitRadius = 80;
+              const targetX = furnaceX + Math.cos(bot.angle) * orbitRadius;
+              const targetY = furnaceY + Math.sin(bot.angle) * orbitRadius;
+              bot.x += (targetX - bot.x) * 0.1;
+              bot.y += (targetY - bot.y) * 0.1;
+            }
           } else {
             bot.angle += 0.02;
-            const orbitRadius = 80;
-            const targetX = furnaceX + Math.cos(bot.angle) * orbitRadius;
-            const targetY = furnaceY + Math.sin(bot.angle) * orbitRadius;
-            bot.x += (targetX - bot.x) * 0.1;
-            bot.y += (targetY - bot.y) * 0.1;
+            const orbitRadius = bot.type === 'minion' ? 120 : 160;
+            bot.x = furnaceX + Math.cos(bot.angle) * orbitRadius;
+            bot.y = furnaceY + Math.sin(bot.angle) * orbitRadius;
           }
-        } else {
-          bot.angle += 0.02;
-          const orbitRadius = bot.type === 'minion' ? 120 : 160;
-          bot.x = furnaceX + Math.cos(bot.angle) * orbitRadius;
-          bot.y = furnaceY + Math.sin(bot.angle) * orbitRadius;
-        }
 
-        if (bot.cooldown > 0) {
-          bot.cooldown -= 16;
-        }
+          if (bot.cooldown > 0) {
+            bot.cooldown -= 16;
+          }
 
-        if (bot.type === 'minion') {
-          if (!bot.targetId && bot.cooldown <= 0) {
-            const target = state.objects.find(o => o.type === 'trash' && !o.isGrabbed && !o.isTractored && o.y > 0);
-            if (target) {
-              bot.targetId = target.id;
-              target.isTractored = true;
+          if (bot.type === 'minion') {
+            if (!bot.targetId && bot.cooldown <= 0) {
+              const target = state.objects.find(o => o.type === 'trash' && !o.isGrabbed && !o.isTractored && o.y > 0);
+              if (target) {
+                bot.targetId = target.id;
+                target.isTractored = true;
+              }
             }
-          }
 
-          if (bot.targetId) {
-            const target = state.objects.find(o => o.id === bot.targetId);
-            if (target) {
-              const dx = furnaceX - target.x;
-              const dy = furnaceY - target.y;
-              const dist = Math.hypot(dx, dy);
-              
-              if (dist < 40) {
-                target.isGrabbed = false;
-                if (processFurnaceCollision(target)) {
-                  state.objects = state.objects.filter(o => o.id !== target.id);
-                  bot.targetId = null;
-                  bot.cooldown = 2000;
+            if (bot.targetId) {
+              const target = state.objects.find(o => o.id === bot.targetId);
+              if (target) {
+                const dx = furnaceX - target.x;
+                const dy = furnaceY - target.y;
+                const dist = Math.hypot(dx, dy);
+                
+                if (dist < 40) {
+                  target.isGrabbed = false;
+                  if (processFurnaceCollision(target)) {
+                    state.objects = state.objects.filter(o => o.id !== target.id);
+                    bot.targetId = null;
+                    bot.cooldown = 2000;
+                  } else {
+                    // If not consumed (e.g., overheat), drop it
+                    bot.targetId = null;
+                    bot.cooldown = 1000;
+                  }
                 } else {
-                  // If not consumed (e.g., overheat), drop it
-                  bot.targetId = null;
-                  bot.cooldown = 1000;
+                  target.x += dx * 0.08;
+                  target.y += dy * 0.08;
+                  
+                  ctx.beginPath();
+                  ctx.moveTo(bot.x, bot.y);
+                  ctx.lineTo(target.x, target.y);
+                  ctx.strokeStyle = '#a855f7';
+                  ctx.lineWidth = 3;
+                  ctx.setLineDash([5, 5]);
+                  ctx.stroke();
+                  ctx.setLineDash([]);
                 }
               } else {
-                target.x += dx * 0.08;
-                target.y += dy * 0.08;
-                
-                ctx.beginPath();
-                ctx.moveTo(bot.x, bot.y);
-                ctx.lineTo(target.x, target.y);
-                ctx.strokeStyle = '#a855f7';
-                ctx.lineWidth = 3;
-                ctx.setLineDash([5, 5]);
-                ctx.stroke();
-                ctx.setLineDash([]);
+                bot.targetId = null;
               }
-            } else {
-              bot.targetId = null;
             }
-          }
-        } else if (bot.type === 'gunner' || bot.type === 'rocket') {
-          if (bot.cooldown <= 0 && closestEnemy) {
-            const dx = closestEnemy.x - bot.x;
-            const dy = closestEnemy.y - bot.y;
-            const dist = Math.hypot(dx, dy);
+          } else if (bot.type === 'gunner' || bot.type === 'rocket') {
+            if (bot.cooldown <= 0 && closestEnemy) {
+              const dx = closestEnemy.x - bot.x;
+              const dy = closestEnemy.y - bot.y;
+              const dist = Math.hypot(dx, dy);
+              
+              state.projectiles.push({
+                id: Math.random(),
+                x: bot.x,
+                y: bot.y,
+                vx: (dx / dist) * (bot.type === 'gunner' ? 20 : 8),
+                vy: (dy / dist) * (bot.type === 'gunner' ? 20 : 8),
+                type: bot.type === 'gunner' ? 'bullet' : 'rocket',
+                targetId: closestEnemy.id,
+                life: 100
+              });
+              
+              bot.cooldown = bot.type === 'gunner' ? 800 : 2500;
+            }
+          } else if (bot.type === 'tank') {
+            // Tank crushes nearby enemies
+            for (let i = state.objects.length - 1; i >= 0; i--) {
+              const obj = state.objects[i];
+              if (obj.type === 'enemy') {
+                const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
+                if (dist < 60) {
+                  setScore(s => s + 20);
+                  playSound('score');
+                  state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'NGHIỀN NÁT!' : 'CRUSHED!'} +20`, life: 1.5, color: '#ef4444' });
+                  spawnParticles(obj.x, obj.y, '#ef4444', 30);
+                  state.objects.splice(i, 1);
+                }
+              }
+            }
             
-            state.projectiles.push({
-              id: Math.random(),
-              x: bot.x,
-              y: bot.y,
-              vx: (dx / dist) * (bot.type === 'gunner' ? 20 : 8),
-              vy: (dy / dist) * (bot.type === 'gunner' ? 20 : 8),
-              type: bot.type === 'gunner' ? 'bullet' : 'rocket',
-              targetId: closestEnemy.id,
-              life: 100
-            });
-            
-            bot.cooldown = bot.type === 'gunner' ? 800 : 2500;
-          }
-        } else if (bot.type === 'tank') {
-          // Tank crushes nearby enemies
-          for (let i = state.objects.length - 1; i >= 0; i--) {
-            const obj = state.objects[i];
-            if (obj.type === 'enemy') {
-              const dist = Math.hypot(obj.x - bot.x, obj.y - bot.y);
-              if (dist < 60) {
-                setScore(s => s + 20);
-                playSound('score');
-                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'NGHIỀN NÁT!' : 'CRUSHED!'} +20`, life: 1.5, color: '#ef4444' });
-                spawnParticles(obj.x, obj.y, '#ef4444', 30);
-                state.objects.splice(i, 1);
+            // Tank damages Boss on contact (if off cooldown)
+            if (state.boss && bot.cooldown <= 0) {
+              const dist = Math.hypot(state.boss.x - bot.x, state.boss.y - bot.y);
+              if (dist < 100) { // 100 is roughly the boss's collision radius + tank radius
+                state.boss.hp -= 20; // Hit for 20 damage
+                bot.cooldown = 1000; // Attack once per second
+                spawnParticles(state.boss.x, state.boss.y, '#ef4444', 20);
+                
+                // Check boss death
+                if (state.boss.hp <= 0) {
+                  state.floatingTexts.push({ x: state.boss.x, y: state.boss.y, text: state.settingsRef.language === 'vi' ? 'ĐÃ TIÊU DIỆT TRÙM!' : 'BOSS DEFEATED!', life: 3.0, color: '#fbbf24' });
+                  spawnParticles(state.boss.x, state.boss.y, '#fbbf24', 100);
+                  const bossPoints = 500 * state.bossLevel;
+                  setScore(s => s + bossPoints);
+                  state.floatingTexts.push({ x: state.boss.x, y: state.boss.y + 30, text: `+${bossPoints}`, life: 3.0, color: '#4ade80' });
+                  playSound('score');
+                  state.bossLevel += 1;
+                  state.boss = null;
+                }
               }
             }
           }
@@ -1371,41 +1420,43 @@ export default function App() {
       for (let i = state.projectiles.length - 1; i >= 0; i--) {
         const p = state.projectiles[i];
         
-        if (p.targetId) {
-          const target = state.objects.find(o => o.id === p.targetId);
-          if (target) {
-            const dx = target.x - p.x;
-            const dy = target.y - p.y;
-            const dist = Math.hypot(dx, dy);
-            
-            if (p.type === 'rocket') {
-              p.vx += (dx / dist) * 1.5;
-              p.vy += (dy / dist) * 1.5;
+        if (!state.isModalOpen) {
+          if (p.targetId) {
+            const target = state.objects.find(o => o.id === p.targetId);
+            if (target) {
+              const dx = target.x - p.x;
+              const dy = target.y - p.y;
+              const dist = Math.hypot(dx, dy);
               
-              // Speed limit for rockets
-              const speed = Math.hypot(p.vx, p.vy);
-              if (speed > 12) {
-                p.vx = (p.vx / speed) * 12;
-                p.vy = (p.vy / speed) * 12;
-              }
-            } else if (p.type === 'bullet') {
-              // Bullets have strong homing to ensure they hit moving targets
-              p.vx += (dx / dist) * 3.0;
-              p.vy += (dy / dist) * 3.0;
-              
-              // Speed limit for bullets
-              const speed = Math.hypot(p.vx, p.vy);
-              if (speed > 25) {
-                p.vx = (p.vx / speed) * 25;
-                p.vy = (p.vy / speed) * 25;
+              if (p.type === 'rocket') {
+                p.vx += (dx / dist) * 1.5;
+                p.vy += (dy / dist) * 1.5;
+                
+                // Speed limit for rockets
+                const speed = Math.hypot(p.vx, p.vy);
+                if (speed > 12) {
+                  p.vx = (p.vx / speed) * 12;
+                  p.vy = (p.vy / speed) * 12;
+                }
+              } else if (p.type === 'bullet') {
+                // Bullets have strong homing to ensure they hit moving targets
+                p.vx += (dx / dist) * 3.0;
+                p.vy += (dy / dist) * 3.0;
+                
+                // Speed limit for bullets
+                const speed = Math.hypot(p.vx, p.vy);
+                if (speed > 25) {
+                  p.vx = (p.vx / speed) * 25;
+                  p.vy = (p.vy / speed) * 25;
+                }
               }
             }
           }
-        }
 
-        p.x += p.vx;
-        p.y += p.vy;
-        p.life -= 1;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.life -= 1;
+        }
 
         // Draw projectile
         ctx.beginPath();
@@ -1418,44 +1469,46 @@ export default function App() {
         }
         ctx.fill();
 
-        // Collision with enemies
-        let hit = false;
-        for (let j = state.objects.length - 1; j >= 0; j--) {
-          const obj = state.objects[j];
-          if (obj.type === 'enemy') {
-            const dist = Math.hypot(obj.x - p.x, obj.y - p.y);
-            if (dist < (p.type === 'rocket' ? 40 : 20)) {
-              hit = true;
-              setScore(s => s + 20);
-              playSound('score');
-              state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +20`, life: 1.5, color: '#ef4444' });
-              spawnParticles(obj.x, obj.y, '#ef4444', p.type === 'rocket' ? 50 : 20);
-              state.objects.splice(j, 1);
-              break;
+        if (!state.isModalOpen) {
+          // Collision with enemies
+          let hit = false;
+          for (let j = state.objects.length - 1; j >= 0; j--) {
+            const obj = state.objects[j];
+            if (obj.type === 'enemy') {
+              const dist = Math.hypot(obj.x - p.x, obj.y - p.y);
+              if (dist < (p.type === 'rocket' ? 40 : 20)) {
+                hit = true;
+                setScore(s => s + 20);
+                playSound('score');
+                state.floatingTexts.push({ x: obj.x, y: obj.y - 20, text: `${state.settingsRef.language === 'vi' ? 'TIÊU DIỆT!' : 'KILLED!'} +20`, life: 1.5, color: '#ef4444' });
+                spawnParticles(obj.x, obj.y, '#ef4444', p.type === 'rocket' ? 50 : 20);
+                state.objects.splice(j, 1);
+                break;
+              }
             }
           }
-        }
 
-        if (hit || p.life <= 0) {
-          state.projectiles.splice(i, 1);
-        } else if (state.boss) {
-          // Check collision with Boss
-          const dist = Math.hypot(state.boss.x - p.x, state.boss.y - p.y);
-          if (dist < 80) { // boss radius
-            state.boss.hp -= (p.type === 'rocket' ? 15 : 5);
+          if (hit || p.life <= 0) {
             state.projectiles.splice(i, 1);
-            spawnParticles(p.x, p.y, '#fbbf24', 20);
-            
-            // Check boss death
-            if (state.boss.hp <= 0) {
-              state.floatingTexts.push({ x: state.boss.x, y: state.boss.y, text: state.settingsRef.language === 'vi' ? 'ĐÃ TIÊU DIỆT TRÙM!' : 'BOSS DEFEATED!', life: 3.0, color: '#fbbf24' });
-              spawnParticles(state.boss.x, state.boss.y, '#fbbf24', 100);
-              const bossPoints = 500 * state.bossLevel;
-              setScore(s => s + bossPoints);
-              state.floatingTexts.push({ x: state.boss.x, y: state.boss.y + 30, text: `+${bossPoints}`, life: 3.0, color: '#4ade80' });
-              playSound('score');
-              state.bossLevel += 1;
-              state.boss = null;
+          } else if (state.boss) {
+            // Check collision with Boss
+            const dist = Math.hypot(state.boss.x - p.x, state.boss.y - p.y);
+            if (dist < 80) { // boss radius
+              state.boss.hp -= (p.type === 'rocket' ? 15 : 5);
+              state.projectiles.splice(i, 1);
+              spawnParticles(p.x, p.y, '#fbbf24', 20);
+              
+              // Check boss death
+              if (state.boss.hp <= 0) {
+                state.floatingTexts.push({ x: state.boss.x, y: state.boss.y, text: state.settingsRef.language === 'vi' ? 'ĐÃ TIÊU DIỆT TRÙM!' : 'BOSS DEFEATED!', life: 3.0, color: '#fbbf24' });
+                spawnParticles(state.boss.x, state.boss.y, '#fbbf24', 100);
+                const bossPoints = 500 * state.bossLevel;
+                setScore(s => s + bossPoints);
+                state.floatingTexts.push({ x: state.boss.x, y: state.boss.y + 30, text: `+${bossPoints}`, life: 3.0, color: '#4ade80' });
+                playSound('score');
+                state.bossLevel += 1;
+                state.boss = null;
+              }
             }
           }
         }
@@ -1464,32 +1517,34 @@ export default function App() {
       // Boss Logic Loop
       if (state.boss) {
         let b = state.boss;
-        if (b.state === 'entering') {
-          b.y += 2;
-          if (b.y > 100) b.state = 'fighting';
-        } else if (b.state === 'fighting') {
-          b.x += b.vx;
-          if (b.x < 100 || b.x > canvas.width - 100) b.vx *= -1;
-          
-          b.cooldown -= 16;
-          if (b.cooldown <= 0) {
-            b.cooldown = 2000 - Math.min(1500, state.bossLevel * 100);
-            // Spawn boss projectile
-            state.objects.push({
-              id: state.nextSpawnId++,
-              emoji: '🔴',
-              x: b.x,
-              y: b.y + 50,
-              speed: 5 + state.bossLevel,
-              isGrabbed: false,
-              type: 'boss_projectile',
-              size: 50,
-              rotation: 0,
-              rotationSpeed: 0.1,
-              vx: (Math.random() - 0.5) * 5,
-              vy: 5 + state.bossLevel * 0.5
-            });
-            playSound('burn');
+        if (!state.isModalOpen) {
+          if (b.state === 'entering') {
+            b.y += 2;
+            if (b.y > 100) b.state = 'fighting';
+          } else if (b.state === 'fighting') {
+            b.x += b.vx;
+            if (b.x < 100 || b.x > canvas.width - 100) b.vx *= -1;
+            
+            b.cooldown -= 16;
+            if (b.cooldown <= 0) {
+              b.cooldown = 2000 - Math.min(1500, state.bossLevel * 100);
+              // Spawn boss projectile
+              state.objects.push({
+                id: state.nextSpawnId++,
+                emoji: '🔴',
+                x: b.x,
+                y: b.y + 50,
+                speed: 5 + state.bossLevel,
+                isGrabbed: false,
+                type: 'boss_projectile',
+                size: 50,
+                rotation: 0,
+                rotationSpeed: 0.1,
+                vx: (Math.random() - 0.5) * 5,
+                vy: 5 + state.bossLevel * 0.5
+              });
+              playSound('burn');
+            }
           }
         }
         
@@ -1500,6 +1555,16 @@ export default function App() {
 
       // 5. Draw Hand Feedback (Optional, for better UX)
       if (state.handLandmarks) {
+        // Draw interaction progress ring if dwelling on a button
+        if (state.hoverProgress > 0 && state.hoveredElement) {
+          uiCtx.beginPath();
+          uiCtx.arc(pinchX, pinchY, 20, -Math.PI / 2, -Math.PI / 2 + (2 * Math.PI * state.hoverProgress));
+          uiCtx.strokeStyle = 'rgba(99, 102, 241, 0.9)';
+          uiCtx.lineWidth = 4;
+          uiCtx.lineCap = 'round';
+          uiCtx.stroke();
+        }
+
         uiCtx.beginPath();
         uiCtx.arc(pinchX, pinchY, isPinching ? 15 : 8, 0, 2 * Math.PI);
         uiCtx.fillStyle = isPinching ? 'rgba(99, 102, 241, 0.8)' : 'rgba(255, 255, 255, 0.5)';
